@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lesson3/controller/firebasecontroller.dart';
 import 'package:lesson3/model/constant.dart';
-import 'package:lesson3/screen/myview/mydalogue.dart';
+import 'package:lesson3/screen/myview/mydialog.dart';
 import 'package:lesson3/screen/userhome_screen.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -100,10 +100,12 @@ class _Controller {
     state.formKey.currentState.save();
 
     User user;
+    MyDialog.circularProgressStart(state.context);
     try {
       print('Made it');
       user = await FirebaseController.signIn(email: email, password: password);
     } catch (e) {
+      MyDialog.circularProgressStop(state.context);
       MyDialog.info(
         context: state.context,
         title: 'Sign In Error',
@@ -111,6 +113,8 @@ class _Controller {
       );
       return;
     }
+
+    MyDialog.circularProgressStop(state.context);
 
     Navigator.pushNamed(state.context, UserHomeScreen.routeName,
         arguments: {Constant.ARG_USER: user});
