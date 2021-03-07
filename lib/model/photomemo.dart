@@ -47,6 +47,25 @@ class PhotoMemo {
     };
   }
 
+  static PhotoMemo deserialize(Map<String, dynamic> doc, String docId) {
+    print('=======30');
+
+    return PhotoMemo(
+      docId: docId,
+      createdBy: doc[CREATED_BY],
+      title: doc[TITLE],
+      memo: doc[MEMO],
+      photoFilename: doc[PHOTO_FILENAME],
+      photoURL: doc[PHOTO_URL],
+      sharedWith: doc[SHARED_WITH].cast<String>(),
+      imageLabels: doc[IMAGE_LABELS],
+      timestamp: doc[TIMESTAMP] == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(
+              doc[TIMESTAMP].millisecondsSinceEpoch),
+    );
+  }
+
   static String validateTitle(String value) {
     if (value == null || value.length < 3)
       return 'too short';

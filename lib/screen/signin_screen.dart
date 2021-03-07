@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:lesson3/controller/firebasecontroller.dart';
 import 'package:lesson3/model/constant.dart';
+import 'package:lesson3/model/photomemo.dart';
 import 'package:lesson3/screen/myview/mydialog.dart';
 import 'package:lesson3/screen/userhome_screen.dart';
 
@@ -102,7 +104,6 @@ class _Controller {
     User user;
     MyDialog.circularProgressStart(state.context);
     try {
-      print('Made it');
       user = await FirebaseController.signIn(email: email, password: password);
     } catch (e) {
       MyDialog.circularProgressStop(state.context);
@@ -114,9 +115,25 @@ class _Controller {
       return;
     }
 
-    MyDialog.circularProgressStop(state.context);
+    try {
+      print('===========0');
 
-    Navigator.pushNamed(state.context, UserHomeScreen.routeName,
-        arguments: {Constant.ARG_USER: user});
+      List<PhotoMemo> photoMemoList =
+          await FirebaseController.getPhotoMemoList(email: user.email);
+      print('===========1');
+      MyDialog.circularProgressStop(state.context);
+      Navigator.pushNamed(state.context, UserHomeScreen.routeName, arguments: {
+        Constant.ARG_USER: user,
+        Constant.ARG_PHOTOMEMOLIST: photoMemoList,
+      });
+      print('===============2');
+    } catch (e) {
+      MyDialog.circularProgressStop(state.context);
+      MyDialog.info(
+        context: state.context,
+        title: 'Firestore getPhotoMemoList error',
+        content: '$e',
+      );
+    }
   }
 }
