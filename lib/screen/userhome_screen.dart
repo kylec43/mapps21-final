@@ -4,6 +4,7 @@ import 'package:lesson3/controller/firebasecontroller.dart';
 import 'package:lesson3/model/constant.dart';
 import 'package:lesson3/model/photomemo.dart';
 import 'package:lesson3/screen/addphotomemo_screen.dart';
+import 'package:lesson3/screen/detailedview_screen.dart';
 import 'package:lesson3/screen/myview/myimage.dart';
 
 class UserHomeScreen extends StatefulWidget {
@@ -71,6 +72,18 @@ class _UserHomeState extends State<UserHomeScreen> {
                     context: context,
                   ),
                   title: Text(photoMemoList[index].title),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(photoMemoList[index].memo.length >= 20
+                          ? photoMemoList[index].memo.substring(0, 20) + '...'
+                          : photoMemoList[index].memo),
+                      Text('Created By: ${photoMemoList[index].createdBy}'),
+                      Text('Shared With: ${photoMemoList[index].sharedWith}'),
+                      Text('Updated At: ${photoMemoList[index].timestamp}'),
+                    ],
+                  ),
+                  onTap: () => con.onTap(index),
                 ),
               ),
       ),
@@ -86,8 +99,13 @@ class _Controller {
     await Navigator.pushNamed(
       state.context,
       AddPhotoMemoScreen.routeName,
-      arguments: {Constant.ARG_USER: state.user},
+      arguments: {
+        Constant.ARG_USER: state.user,
+        Constant.ARG_PHOTOMEMOLIST: state.photoMemoList
+      },
     );
+
+    state.render(() {}); // rerender the screen
   }
 
   void signOut() async {
@@ -98,5 +116,13 @@ class _Controller {
     }
     Navigator.of(state.context).pop(); // close the drawer
     Navigator.of(state.context).pop(); // pop userhome screen
+  }
+
+  void onTap(int index) async {
+    await Navigator.pushNamed(state.context, DetailedViewScreen.routeName,
+        arguments: {
+          Constant.ARG_USER: state.user,
+          Constant.ARG_ONE_PHOTOMEMO: state.photoMemoList[index],
+        });
   }
 }

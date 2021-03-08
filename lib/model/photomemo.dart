@@ -6,7 +6,7 @@ class PhotoMemo {
   String photoFilename; // stored at Storage
   String photoURL;
   DateTime timestamp;
-  List<String> sharedWith; // list of email
+  List<dynamic> sharedWith; // list of email
   List<dynamic> imageLabels; // image identified by ML
 
   // key for Firestore document
@@ -57,7 +57,7 @@ class PhotoMemo {
       memo: doc[MEMO],
       photoFilename: doc[PHOTO_FILENAME],
       photoURL: doc[PHOTO_URL],
-      sharedWith: doc[SHARED_WITH].cast<String>(),
+      sharedWith: doc[SHARED_WITH],
       imageLabels: doc[IMAGE_LABELS],
       timestamp: doc[TIMESTAMP] == null
           ? null
