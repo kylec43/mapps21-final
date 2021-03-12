@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lesson3/model/constant.dart';
@@ -15,7 +17,8 @@ class DetailedViewScreen extends StatefulWidget {
 class _DetailedViewState extends State<DetailedViewScreen> {
   _Controller con;
   User user;
-  PhotoMemo onePhotoMemo;
+  PhotoMemo onePhotoMemoOriginal;
+  PhotoMemo onePhotoMemoTemp;
   bool editMode = false;
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
@@ -31,8 +34,8 @@ class _DetailedViewState extends State<DetailedViewScreen> {
   Widget build(BuildContext context) {
     Map args = ModalRoute.of(context).settings.arguments;
     user ??= args[Constant.ARG_USER];
-    onePhotoMemo ??= args[Constant.ARG_ONE_PHOTOMEMO];
-
+    onePhotoMemoOriginal ??= args[Constant.ARG_ONE_PHOTOMEMO];
+    onePhotoMemoTemp ??= PhotoMemo.clone(onePhotoMemoOriginal);
     return Scaffold(
       appBar: AppBar(
         title: Text('Detailed View'),
@@ -47,12 +50,55 @@ class _DetailedViewState extends State<DetailedViewScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              Container(
-                height: MediaQuery.of(context).size.height * 0.4,
-                child: MyImage.network(
-                  url: onePhotoMemo.photoURL,
-                  context: context,
-                ),
+              Stack(
+                children: [
+                  Container(
+                    height: MediaQuery.of(context).size.height * 0.4,
+                    child: con.photoFile == null
+                        ? MyImage.network(
+                            url: onePhotoMemoTemp.photoURL,
+                            context: context,
+                          )
+                        : Image.file(
+                            con.photoFile,
+                            fit: BoxFit.fill,
+                          ),
+                  ),
+                  editMode
+                      ? Positioned(
+                          right: 0.0,
+                          bottom: 0.0,
+                          child: Container(
+                            color: Colors.blue[100],
+                            child: PopupMenuButton<String>(
+                              onSelected: con.getPhoto,
+                              itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  value: Constant.SRC_CAMERA,
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.photo_camera),
+                                      Text(Constant.SRC_CAMERA),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: Constant.SRC_GALLERY,
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.photo_library),
+                                      Text(Constant.SRC_GALLERY),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : SizedBox(
+                          height: 1.0,
+                        ),
+                ],
               ),
               TextFormField(
                 enabled: editMode,
@@ -60,34 +106,34 @@ class _DetailedViewState extends State<DetailedViewScreen> {
                 decoration: InputDecoration(
                   hintText: 'Enter title',
                 ),
-                initialValue: onePhotoMemo.title,
+                initialValue: onePhotoMemoTemp.title,
                 autocorrect: true,
                 validator: PhotoMemo.validateTitle,
-                onSaved: null,
+                onSaved: con.saveTitle,
               ),
               TextFormField(
                 enabled: editMode,
                 decoration: InputDecoration(
                   hintText: 'Enter memo',
                 ),
-                initialValue: onePhotoMemo.memo,
+                initialValue: onePhotoMemoTemp.memo,
                 autocorrect: true,
                 keyboardType: TextInputType.multiline,
                 maxLines: 6,
                 validator: PhotoMemo.validateMemo,
-                onSaved: null,
+                onSaved: con.saveMemo,
               ),
               TextFormField(
                 enabled: editMode,
                 decoration: InputDecoration(
                   hintText: 'Enter Shared With (email list)',
                 ),
-                initialValue: onePhotoMemo.sharedWith.join(','),
+                initialValue: onePhotoMemoTemp.sharedWith.join(','),
                 autocorrect: false,
                 keyboardType: TextInputType.multiline,
                 maxLines: 2,
                 validator: PhotoMemo.validateSharedWith,
-                onSaved: null,
+                onSaved: con.saveSharedWith,
               ),
               SizedBox(
                 height: 5.0,
@@ -99,7 +145,7 @@ class _DetailedViewState extends State<DetailedViewScreen> {
                       height: 1.0,
                     ),
               Constant.DEV
-                  ? Text(onePhotoMemo.imageLabels.join(' | '))
+                  ? Text(onePhotoMemoTemp.imageLabels.join(' | '))
                   : SizedBox(
                       height: 1.0,
                     ),
@@ -114,6 +160,7 @@ class _DetailedViewState extends State<DetailedViewScreen> {
 class _Controller {
   _DetailedViewState state;
   _Controller(this.state);
+  File photoFile; //camera or gallery
 
   void update() {
     state.render(() => state.editMode = false);
@@ -121,5 +168,22 @@ class _Controller {
 
   void edit() {
     state.render(() => state.editMode = true);
+  }
+
+  void getPhoto(String src) {}
+
+  void saveTitle(String value) {
+    state.onePhotoMemoTemp.title = value;
+  }
+
+  void saveMemo(String value) {
+    state.onePhotoMemoTemp.memo = value;
+  }
+
+  void saveSharedWith(String value) {
+    if (value.trim().length != 0) {
+      state.onePhotoMemoTemp.sharedWith =
+          value.split(RegExp('(,| )+')).map((e) => e.trim()).toList();
+    }
   }
 }
