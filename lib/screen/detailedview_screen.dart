@@ -163,7 +163,10 @@ class _Controller {
   File photoFile; //camera or gallery
 
   void update() {
-    state.render(() => state.editMode = false);
+    if (!state.formKey.currentState.validate()) return;
+
+    state.formKey.currentState.save();
+    //state.render(() => state.editMode = false);
   }
 
   void edit() {
