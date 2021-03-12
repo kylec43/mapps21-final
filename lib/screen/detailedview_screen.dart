@@ -1,9 +1,13 @@
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:lesson3/controller/firebasecontroller.dart';
 import 'package:lesson3/model/constant.dart';
 import 'package:lesson3/model/photomemo.dart';
+import 'package:lesson3/screen/myview/mydialog.dart';
 import 'package:lesson3/screen/myview/myimage.dart';
 
 class DetailedViewScreen extends StatefulWidget {
@@ -21,6 +25,7 @@ class _DetailedViewState extends State<DetailedViewScreen> {
   PhotoMemo onePhotoMemoTemp;
   bool editMode = false;
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  String progressMessage;
 
   @override
   void initState() {
@@ -100,6 +105,14 @@ class _DetailedViewState extends State<DetailedViewScreen> {
                         ),
                 ],
               ),
+              progressMessage == null
+                  ? SizedBox(
+                      height: 1.0,
+                    )
+                  : Text(
+                      progressMessage,
+                      style: Theme.of(context).textTheme.headline6,
+                    ),
               TextFormField(
                 enabled: editMode,
                 style: Theme.of(context).textTheme.headline6,
@@ -162,18 +175,91 @@ class _Controller {
   _Controller(this.state);
   File photoFile; //camera or gallery
 
-  void update() {
+  void update() async {
     if (!state.formKey.currentState.validate()) return;
 
     state.formKey.currentState.save();
-    //state.render(() => state.editMode = false);
+
+    try {
+      MyDialog.circularProgressStart(state.context);
+      Map<String, dynamic> updateInfo = {};
+      if (photoFile != null) {
+        Map photoInfo = await FirebaseController.uploadPhotoFile(
+          photo: photoFile,
+          filename: state.onePhotoMemoTemp.photoFilename,
+          uid: state.user.uid,
+          listener: (double message) {
+            state.render(() {
+              if (message == null)
+                state.progressMessage = null;
+              else {
+                message *= 100;
+                state.progressMessage =
+                    'Uploading: ' + message.toStringAsFixed(1) + ' %';
+              }
+            });
+          },
+        );
+
+        state.onePhotoMemoTemp.photoURL = photoInfo[Constant.ARG_DOWNLOADURL];
+        state.render(() => state.progressMessage = 'ML image labeler started');
+        List<dynamic> labels =
+            await FirebaseController.getImageLabels(photoFile: photoFile);
+        state.onePhotoMemoTemp.imageLabels = labels;
+
+        updateInfo[PhotoMemo.PHOTO_URL] = photoInfo[Constant.ARG_DOWNLOADURL];
+        updateInfo[PhotoMemo.IMAGE_LABELS] = labels;
+      }
+
+      //determine updated fields
+
+      if (state.onePhotoMemoOriginal.title != state.onePhotoMemoTemp.title) {
+        updateInfo[PhotoMemo.TITLE] = state.onePhotoMemoTemp.title;
+      }
+      if (state.onePhotoMemoOriginal.memo != state.onePhotoMemoTemp.memo) {
+        updateInfo[PhotoMemo.MEMO] = state.onePhotoMemoTemp.memo;
+      }
+      if (!listEquals(state.onePhotoMemoOriginal.sharedWith,
+          state.onePhotoMemoTemp.sharedWith)) {
+        updateInfo[PhotoMemo.SHARED_WITH] = state.onePhotoMemoTemp.sharedWith;
+      }
+
+      updateInfo[PhotoMemo.TIMESTAMP] = DateTime.now();
+
+      await FirebaseController.updatePhotoMemo(
+          state.onePhotoMemoTemp.docId, updateInfo);
+
+      state.onePhotoMemoOriginal.assign(state.onePhotoMemoTemp);
+      MyDialog.circularProgressStop(state.context);
+      Navigator.pop(state.context);
+    } catch (e) {
+      MyDialog.circularProgressStop(state.context);
+      MyDialog.info(
+          context: state.context,
+          title: 'Update PhotoMemo error',
+          content: '$e');
+    }
   }
 
   void edit() {
     state.render(() => state.editMode = true);
   }
 
-  void getPhoto(String src) {}
+  void getPhoto(String src) async {
+    try {
+      PickedFile _photoFile;
+      if (src == Constant.SRC_CAMERA) {
+        _photoFile = await ImagePicker().getImage(source: ImageSource.camera);
+      } else {
+        _photoFile = await ImagePicker().getImage(source: ImageSource.gallery);
+      }
+      if (_photoFile == null) return; //selection canceled
+      state.render(() => photoFile = File(_photoFile.path));
+    } catch (e) {
+      MyDialog.info(
+          context: state.context, title: "getPhoto error", content: '$e');
+    }
+  }
 
   void saveTitle(String value) {
     state.onePhotoMemoTemp.title = value;

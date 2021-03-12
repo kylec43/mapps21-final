@@ -5,7 +5,9 @@ import 'package:lesson3/model/constant.dart';
 import 'package:lesson3/model/photomemo.dart';
 import 'package:lesson3/screen/addphotomemo_screen.dart';
 import 'package:lesson3/screen/detailedview_screen.dart';
+import 'package:lesson3/screen/myview/mydialog.dart';
 import 'package:lesson3/screen/myview/myimage.dart';
+import 'package:lesson3/screen/sharedwith_screen.dart';
 
 class UserHomeScreen extends StatefulWidget {
   static const routeName = '/userHomeScreen';
@@ -40,6 +42,19 @@ class _UserHomeState extends State<UserHomeScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text('User Home'),
+          actions: [
+            con.delIndex != null
+                ? IconButton(
+                    icon: Icon(Icons.cancel), onPressed: con.cancelDelete)
+                : SizedBox(
+                    width: 1.0,
+                  ),
+            con.delIndex != null
+                ? IconButton(icon: Icon(Icons.delete), onPressed: con.delete)
+                : SizedBox(
+                    width: 1.0,
+                  ),
+          ],
         ),
         drawer: Drawer(
           child: ListView(
@@ -47,6 +62,11 @@ class _UserHomeState extends State<UserHomeScreen> {
               UserAccountsDrawerHeader(
                   accountName: Text(user.displayName ?? 'N/A'),
                   accountEmail: Text(user.email)),
+              ListTile(
+                leading: Icon(Icons.people),
+                title: Text('Shared With Me'),
+                onTap: con.sharedWithMe,
+              ),
               ListTile(
                 leading: Icon(Icons.exit_to_app),
                 title: Text('Sign Out'),
@@ -66,24 +86,30 @@ class _UserHomeState extends State<UserHomeScreen> {
               )
             : ListView.builder(
                 itemCount: photoMemoList.length,
-                itemBuilder: (BuildContext context, int index) => ListTile(
-                  leading: MyImage.network(
-                    url: photoMemoList[index].photoURL,
-                    context: context,
+                itemBuilder: (BuildContext context, int index) => Container(
+                  color: con.delIndex != null && con.delIndex == index
+                      ? Theme.of(context).highlightColor
+                      : Theme.of(context).scaffoldBackgroundColor,
+                  child: ListTile(
+                    leading: MyImage.network(
+                      url: photoMemoList[index].photoURL,
+                      context: context,
+                    ),
+                    title: Text(photoMemoList[index].title),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(photoMemoList[index].memo.length >= 20
+                            ? photoMemoList[index].memo.substring(0, 20) + '...'
+                            : photoMemoList[index].memo),
+                        Text('Created By: ${photoMemoList[index].createdBy}'),
+                        Text('Shared With: ${photoMemoList[index].sharedWith}'),
+                        Text('Updated At: ${photoMemoList[index].timestamp}'),
+                      ],
+                    ),
+                    onTap: () => con.onTap(index),
+                    onLongPress: () => con.onLongPress(index),
                   ),
-                  title: Text(photoMemoList[index].title),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(photoMemoList[index].memo.length >= 20
-                          ? photoMemoList[index].memo.substring(0, 20) + '...'
-                          : photoMemoList[index].memo),
-                      Text('Created By: ${photoMemoList[index].createdBy}'),
-                      Text('Shared With: ${photoMemoList[index].sharedWith}'),
-                      Text('Updated At: ${photoMemoList[index].timestamp}'),
-                    ],
-                  ),
-                  onTap: () => con.onTap(index),
                 ),
               ),
       ),
@@ -94,6 +120,7 @@ class _UserHomeState extends State<UserHomeScreen> {
 class _Controller {
   _UserHomeState state;
   _Controller(this.state);
+  int delIndex;
 
   void addButton() async {
     await Navigator.pushNamed(
@@ -119,10 +146,46 @@ class _Controller {
   }
 
   void onTap(int index) async {
+    if (delIndex != null) return;
+
     await Navigator.pushNamed(state.context, DetailedViewScreen.routeName,
         arguments: {
           Constant.ARG_USER: state.user,
           Constant.ARG_ONE_PHOTOMEMO: state.photoMemoList[index],
         });
+
+    state.render(() {});
   }
+
+  void sharedWithMe() async {
+    try {
+      List<PhotoMemo> photoMemoList =
+          await FirebaseController.getPhotoMemoSharedWithMe(
+        email: state.user.email,
+      );
+      await Navigator.pushNamed(state.context, SharedWithScreen.routeName,
+          arguments: {
+            Constant.ARG_USER: state.user,
+            Constant.ARG_PHOTOMEMOLIST: photoMemoList,
+          });
+      Navigator.pop(state.context);
+    } catch (e) {
+      MyDialog.info(
+        context: state.context,
+        title: 'get Shared PhotoMemo error',
+        content: '$e',
+      );
+    }
+  }
+
+  void onLongPress(int index) {
+    if (delIndex != null) return;
+    state.render(() => delIndex = index);
+  }
+
+  void cancelDelete() {
+    state.render(() => delIndex = null);
+  }
+
+  void delete() {}
 }
