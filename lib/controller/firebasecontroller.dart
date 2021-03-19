@@ -116,4 +116,28 @@ class FirebaseController {
 
     return result;
   }
+
+  static Future<void> deletePhotoMemo(PhotoMemo p) async {
+    await FirebaseFirestore.instance
+        .collection(Constant.PHOTOMEMO_COLLECTION)
+        .doc(p.docId)
+        .delete();
+
+    await FirebaseStorage.instance.ref().child(p.photoFilename).delete();
+  }
+
+  static Future<List<PhotoMemo>> searchImage(
+      {@required String createdBy, @required List<String> searchLabels}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.PHOTOMEMO_COLLECTION)
+        .where(PhotoMemo.CREATED_BY, isEqualTo: createdBy)
+        .where(PhotoMemo.IMAGE_LABELS, arrayContainsAny: searchLabels)
+        .orderBy(PhotoMemo.TIMESTAMP, descending: true)
+        .get();
+
+    var results = <PhotoMemo>[];
+    querySnapshot.docs.forEach(
+        (doc) => results.add(PhotoMemo.deserialize(doc.data(), doc.id)));
+    return results;
+  }
 }
