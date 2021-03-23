@@ -20,11 +20,32 @@ class FirebaseController {
   }
 
   static Future<void> createAccount(
-      {@required String email, @required String password}) async {
-    await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      {@required String email,
+      @required String password,
+      @required String username}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.USERNAME_COLLECTION)
+        .where(Constant.USERNAME_FIELD, isEqualTo: username)
+        .get();
+
+    if (querySnapshot.size > 0) {
+      throw Exception(Constant.USERNAME_NOT_UNIQUE_ERROR);
+    }
+
+    UserCredential result =
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
+    User user = result.user;
+    user.updateProfile(displayName: username);
+
+    await FirebaseFirestore.instance
+        .collection(Constant.USERNAME_COLLECTION)
+        .add(<String, dynamic>{
+      Constant.USERNAME_FIELD: username,
+      Constant.USERNAME_OWNER_FIELD: email
+    });
   }
 
   static Future<void> signOut() async {

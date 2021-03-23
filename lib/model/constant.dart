@@ -15,4 +15,9 @@ class Constant {
   static const ARG_FILENAME = 'filename';
 
   static const MIN_ML_CONFIDENCE = 0.7;
+
+  static const USERNAME_COLLECTION = 'user_names';
+  static const USERNAME_FIELD = 'username';
+  static const USERNAME_NOT_UNIQUE_ERROR = 'USERNAME_NOT_UNIQUE';
+  static const USERNAME_OWNER_FIELD = 'owner';
 }
