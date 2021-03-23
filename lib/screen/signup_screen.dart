@@ -35,15 +35,12 @@ class _SignUpState extends State<SignUpScreen> {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.only(top: 15.0, left: 15.0),
+          padding: const EdgeInsets.all(16),
           child: Form(
             key: formKey,
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  SizedBox(
-                    height: 30.0,
-                  ),
                   con.undefinedErrorMessage == null
                       ? SizedBox(
                           height: 1.0,
