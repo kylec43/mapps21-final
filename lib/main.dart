@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lesson3/model/constant.dart';
 import 'package:lesson3/screen/addphotomemo_screen.dart';
 import 'package:lesson3/screen/detailedview_screen.dart';
+import 'package:lesson3/screen/forgotpassword_screen.dart';
 import 'package:lesson3/screen/sharedwith_screen.dart';
 import 'package:lesson3/screen/signin_screen.dart';
 import 'package:lesson3/screen/signup_screen.dart';
@@ -20,7 +21,7 @@ class PhotoMemoApp extends StatelessWidget {
     return MaterialApp(
         debugShowCheckedModeBanner: Constant.DEV,
         theme: ThemeData(
-          brightness: Brightness.dark,
+          brightness: Brightness.light,
           primaryColor: Colors.green,
         ),
         initialRoute: SignInScreen.routeName,
@@ -31,6 +32,7 @@ class PhotoMemoApp extends StatelessWidget {
           DetailedViewScreen.routeName: (context) => DetailedViewScreen(),
           SignUpScreen.routeName: (context) => SignUpScreen(),
           SharedWithScreen.routeName: (context) => SharedWithScreen(),
+          ForgotPasswordScreen.routeName: (context) => ForgotPasswordScreen(),
         });
   }
 }

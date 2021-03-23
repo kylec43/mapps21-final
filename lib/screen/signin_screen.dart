@@ -1,8 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lesson3/controller/firebasecontroller.dart';
 import 'package:lesson3/model/constant.dart';
 import 'package:lesson3/model/photomemo.dart';
+import 'package:lesson3/screen/forgotpassword_screen.dart';
 import 'package:lesson3/screen/myview/mydialog.dart';
 import 'package:lesson3/screen/signup_screen.dart';
 import 'package:lesson3/screen/userhome_screen.dart';
@@ -27,64 +29,130 @@ class _SignInState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Sign In'),
+    return Container(
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage("images/waterfall.gif"),
+          fit: BoxFit.fill,
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.only(top: 10.0, left: 15.0),
-        child: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-              child: Column(
-            children: [
-              Center(
-                child: Text(
-                  'PhotoMemo',
-                  style: TextStyle(fontFamily: 'Pacifico', fontSize: 40.0),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text('Sign In'),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.only(top: 35.0),
+          child: Container(
+            color: Colors.black54,
+            child: Padding(
+              padding:
+                  const EdgeInsets.only(top: 10.0, left: 15.0, bottom: 20.0),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Container(
+                    child: Column(
+                      children: [
+                        Center(
+                          child: Text(
+                            'PhotoMemo',
+                            style: TextStyle(
+                                fontFamily: 'Pacifico',
+                                fontSize: 40.0,
+                                color: Colors.white),
+                          ),
+                        ),
+                        Text(
+                          'Sign in, please!',
+                          style: TextStyle(
+                              fontFamily: 'Pacifico', color: Colors.white),
+                        ),
+                        SizedBox(height: 20.0),
+                        TextFormField(
+                          decoration: InputDecoration(
+                            hintText: 'Email',
+                            hintStyle: TextStyle(
+                              color: Colors.black,
+                            ),
+                            fillColor: Colors.white70,
+                            filled: true,
+                            errorStyle: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red[800],
+                            ),
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          autocorrect: false,
+                          validator: con.validateEmail,
+                          onSaved: con.saveEmail,
+                        ),
+                        SizedBox(height: 10.0),
+                        TextFormField(
+                          decoration: InputDecoration(
+                            hintText: 'Password',
+                            hintStyle: TextStyle(
+                              color: Colors.black,
+                            ),
+                            fillColor: Colors.white70,
+                            filled: true,
+                            errorStyle: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          style: TextStyle(color: Colors.white),
+                          obscureText: true,
+                          autocorrect: false,
+                          validator: con.validatePassword,
+                          onSaved: con.savePassword,
+                        ),
+                        SizedBox(
+                          height: 15.0,
+                        ),
+                        RaisedButton(
+                          onPressed: con.signIn,
+                          child: Text(
+                            'Sign In',
+                            style: Theme.of(context).textTheme.button,
+                          ),
+                        ),
+                        Divider(
+                          color: Colors.blue[300],
+                          thickness: 1,
+                        ),
+                        RaisedButton(
+                          onPressed: con.signUp,
+                          child: Text(
+                            'Create a new account',
+                            style: Theme.of(context).textTheme.button,
+                          ),
+                        ),
+                        SizedBox(
+                          height: 15.0,
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pushNamed(
+                              context,
+                              ForgotPasswordScreen.routeName,
+                            );
+                          },
+                          child: Text(
+                            "Forgot password?",
+                            style: TextStyle(
+                              decoration: TextDecoration.underline,
+                              fontSize: 20,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              Text(
-                'Sign in, please!',
-                style: TextStyle(fontFamily: 'Pacifico'),
-              ),
-              TextFormField(
-                decoration: InputDecoration(
-                  hintText: 'Email',
-                ),
-                keyboardType: TextInputType.emailAddress,
-                autocorrect: false,
-                validator: con.validateEmail,
-                onSaved: con.saveEmail,
-              ),
-              TextFormField(
-                decoration: InputDecoration(
-                  hintText: 'Password',
-                ),
-                obscureText: true,
-                autocorrect: false,
-                validator: con.validatePassword,
-                onSaved: con.savePassword,
-              ),
-              RaisedButton(
-                onPressed: con.signIn,
-                child: Text(
-                  'Sign In',
-                  style: Theme.of(context).textTheme.button,
-                ),
-              ),
-              SizedBox(
-                height: 15.0,
-              ),
-              RaisedButton(
-                onPressed: con.signUp,
-                child: Text(
-                  'Create a new account',
-                  style: Theme.of(context).textTheme.button,
-                ),
-              ),
-            ],
-          )),
+            ),
+          ),
         ),
       ),
     );
@@ -101,7 +169,7 @@ class _Controller {
     if (value.contains('@') && value.contains('.'))
       return null;
     else
-      return 'invalid email address';
+      return '• Invalid email address';
   }
 
   void saveEmail(String value) {
@@ -110,7 +178,7 @@ class _Controller {
 
   String validatePassword(String value) {
     if (value.length < 6)
-      return 'too short';
+      return '• Password is too short (min. 6 characters)';
     else
       return null;
   }

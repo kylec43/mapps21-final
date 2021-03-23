@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:lesson3/controller/firebasecontroller.dart';
 import 'package:lesson3/screen/myview/mydialog.dart';
 import 'package:lesson3/model/constant.dart';
@@ -14,6 +17,7 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpState extends State<SignUpScreen> {
   _Controller con;
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  File photo;
 
   @override
   void initState() {
@@ -37,13 +41,20 @@ class _SignUpState extends State<SignUpScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  Text(
-                    'Create an account',
-                    style: Theme.of(context).textTheme.headline5,
-                  ),
                   SizedBox(
                     height: 30.0,
                   ),
+                  con.undefinedErrorMessage == null
+                      ? SizedBox(
+                          height: 1.0,
+                        )
+                      : Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '• ' + con.undefinedErrorMessage,
+                            style: TextStyle(color: Colors.red, fontSize: 18.0),
+                          ),
+                        ),
                   con.emailErrorMessage == null
                       ? SizedBox(
                           height: 1.0,
@@ -77,8 +88,67 @@ class _SignUpState extends State<SignUpScreen> {
                             style: TextStyle(color: Colors.red, fontSize: 18.0),
                           ),
                         ),
+                  SizedBox(height: 20),
+                  Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Profile Picture',
+                      style: TextStyle(
+                        fontSize: 24.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 15.0),
+                  Align(
+                    alignment: Alignment.center,
+                    child: Container(
+                      width: MediaQuery.of(context).size.width * 0.5,
+                      height: MediaQuery.of(context).size.height * 0.3,
+                      child: photo == null
+                          ? ClipOval(
+                              child: Icon(
+                                Icons.photo_library,
+                                size: 150,
+                              ),
+                            )
+                          : ClipOval(
+                              child: Image.file(
+                                photo,
+                                fit: BoxFit.fill,
+                              ),
+                            ),
+                    ),
+                  ),
+                  SizedBox(height: 15.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment
+                        .center, //Center Row contents horizontally,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      RaisedButton(
+                        onPressed: () => con.getPhoto(Constant.SRC_CAMERA),
+                        child: Row(
+                          children: [
+                            Icon(Icons.photo_camera),
+                            Text("Camera"),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 15.0),
+                      RaisedButton(
+                        onPressed: () => con.getPhoto(Constant.SRC_GALLERY),
+                        child: Row(
+                          children: [
+                            Icon(Icons.photo_library),
+                            Text("Gallery"),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                   SizedBox(
-                    height: 20.0,
+                    height: 45.0,
                   ),
                   Align(
                     alignment: Alignment.center,
@@ -161,7 +231,7 @@ class _SignUpState extends State<SignUpScreen> {
                   RaisedButton(
                     onPressed: con.createAccount,
                     child: Text(
-                      'Create',
+                      'Create Account',
                       style: Theme.of(context).textTheme.button,
                     ),
                   ),
@@ -187,6 +257,7 @@ class _Controller {
   String emailInUserErrorMessage;
   String username;
   String usernameErrorMessage;
+  String undefinedErrorMessage;
 
   void createAccount() async {
     if (!state.formKey.currentState.validate()) return;
@@ -198,17 +269,17 @@ class _Controller {
 
     if (!validUsername()) {
       state.render(() =>
-          usernameErrorMessage = 'Username is too short! (min. 6 characters)');
+          usernameErrorMessage = 'Username is too short (min. 6 characters)');
       errorExists = true;
     } else {
       state.render(() => usernameErrorMessage = null);
     }
 
     if (!validEmail()) {
-      state.render(() => emailErrorMessage = 'Invalid Email!');
+      state.render(() => emailErrorMessage = 'Invalid Email');
       errorExists = true;
     } else if (email != emailConfirm) {
-      state.render(() => emailErrorMessage = 'Emails do not match!');
+      state.render(() => emailErrorMessage = 'Emails do not match');
       errorExists = true;
     } else {
       state.render(() => emailErrorMessage = null);
@@ -216,10 +287,10 @@ class _Controller {
 
     if (!validPassword()) {
       state.render(() =>
-          passwordErrorMessage = 'Password is too short! (min. 6 characters)');
+          passwordErrorMessage = 'Password is too short (min. 6 characters)');
       errorExists = true;
     } else if (password != passwordConfirm) {
-      state.render(() => passwordErrorMessage = 'Passwords do not match!');
+      state.render(() => passwordErrorMessage = 'Passwords do not match');
       errorExists = true;
     } else {
       state.render(() => passwordErrorMessage = null);
@@ -230,26 +301,32 @@ class _Controller {
     try {
       await FirebaseController.createAccount(
           email: email, password: password, username: username);
+
+      state.render(() => undefinedErrorMessage = null);
+
       MyDialog.info(
         context: state.context,
         title: 'Account Created!',
         content: 'Go to Sign In to use the app',
+        onPressed: () {
+          Navigator.of(state.context).pop();
+          Navigator.of(state.context).pop();
+        },
       );
     } catch (e) {
       switch (e.code) {
         case 'email-already-in-use':
-          state.render(() => emailErrorMessage = 'Email is already in use!');
+          state.render(() => emailErrorMessage = 'Email is already in use');
           return;
       }
 
       switch (e.message) {
         case Constant.USERNAME_NOT_UNIQUE_ERROR:
-          state.render(
-              () => usernameErrorMessage = 'Username is already taken!');
+          state
+              .render(() => usernameErrorMessage = 'Username is already taken');
           break;
         default:
-          MyDialog.info(
-              context: state.context, title: 'Cannot create', content: '$e');
+          state.render(() => undefinedErrorMessage = '$e');
           break;
       }
     }
@@ -294,5 +371,25 @@ class _Controller {
 
   void saveUsername(String value) {
     username = value;
+  }
+
+  void getPhoto(String src) async {
+    try {
+      PickedFile _imageFile;
+      var _picker = ImagePicker();
+      if (src == Constant.SRC_CAMERA) {
+        _imageFile = await _picker.getImage(source: ImageSource.camera);
+      } else {
+        _imageFile = await _picker.getImage(source: ImageSource.gallery);
+      }
+
+      if (_imageFile == null) return; //selection canceled
+      state.render(() => state.photo = File(_imageFile.path));
+    } catch (e) {
+      MyDialog.info(
+          context: state.context,
+          title: 'Failed to get picture',
+          content: '$e');
+    }
   }
 }

@@ -21,6 +21,7 @@ class MyDialog {
     @required BuildContext context,
     @required String title,
     @required String content,
+    onPressed,
   }) {
     showDialog(
         context: context,
@@ -30,7 +31,9 @@ class MyDialog {
               content: Text(content),
               actions: [
                 FlatButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => onPressed != null
+                      ? onPressed()
+                      : Navigator.of(context).pop(),
                   child: Text(
                     'OK',
                     style: Theme.of(context).textTheme.button,

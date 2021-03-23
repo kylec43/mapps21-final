@@ -161,4 +161,8 @@ class FirebaseController {
         (doc) => results.add(PhotoMemo.deserialize(doc.data(), doc.id)));
     return results;
   }
+
+  static Future<void> sendResetEmail(email) async {
+    await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+  }
 }
