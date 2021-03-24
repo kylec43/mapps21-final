@@ -22,7 +22,9 @@ class FirebaseController {
   static Future<void> createAccount(
       {@required String email,
       @required String password,
-      @required String username}) async {
+      @required String username,
+      @required Function listener,
+      profilePicture}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.USERNAME_COLLECTION)
         .where(Constant.USERNAME_FIELD, isEqualTo: username)
@@ -38,7 +40,20 @@ class FirebaseController {
       password: password,
     );
     User user = result.user;
-    user.updateProfile(displayName: username);
+
+    String profilePictureURL;
+    if (profilePicture == null) {
+      profilePictureURL = await FirebaseStorage.instance
+          .ref(
+              '${Constant.DEFAULT_PROFILE_PICTURE_FOLDER}/${Constant.DEFAULT_PROFILE_PICTURE_NAME}')
+          .getDownloadURL();
+    } else {
+      Map photoInfo = await uploadPhotoFile(
+          photo: profilePicture, uid: user.uid, listener: listener);
+      profilePictureURL = photoInfo[Constant.ARG_DOWNLOADURL];
+    }
+
+    user.updateProfile(displayName: username, photoURL: profilePictureURL);
 
     await FirebaseFirestore.instance
         .collection(Constant.USERNAME_COLLECTION)

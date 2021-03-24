@@ -100,7 +100,6 @@ class _SignInState extends State<SignInScreen> {
                             errorStyle: TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                          style: TextStyle(color: Colors.white),
                           obscureText: true,
                           autocorrect: false,
                           validator: con.validatePassword,

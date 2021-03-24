@@ -18,6 +18,7 @@ class _SignUpState extends State<SignUpScreen> {
   _Controller con;
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
   File photo;
+  String progressMessage;
 
   @override
   void initState() {
@@ -41,50 +42,6 @@ class _SignUpState extends State<SignUpScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  con.undefinedErrorMessage == null
-                      ? SizedBox(
-                          height: 1.0,
-                        )
-                      : Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '• ' + con.undefinedErrorMessage,
-                            style: TextStyle(color: Colors.red, fontSize: 18.0),
-                          ),
-                        ),
-                  con.emailErrorMessage == null
-                      ? SizedBox(
-                          height: 1.0,
-                        )
-                      : Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '• ' + con.emailErrorMessage,
-                            style: TextStyle(color: Colors.red, fontSize: 18.0),
-                          ),
-                        ),
-                  con.usernameErrorMessage == null
-                      ? SizedBox(
-                          height: 1.0,
-                        )
-                      : Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '• ' + con.usernameErrorMessage,
-                            style: TextStyle(color: Colors.red, fontSize: 18.0),
-                          ),
-                        ),
-                  con.passwordErrorMessage == null
-                      ? SizedBox(
-                          height: 1.0,
-                        )
-                      : Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '• ' + con.passwordErrorMessage,
-                            style: TextStyle(color: Colors.red, fontSize: 18.0),
-                          ),
-                        ),
                   SizedBox(height: 20),
                   Align(
                     alignment: Alignment.center,
@@ -104,9 +61,9 @@ class _SignUpState extends State<SignUpScreen> {
                       height: MediaQuery.of(context).size.height * 0.3,
                       child: photo == null
                           ? ClipOval(
-                              child: Icon(
-                                Icons.photo_library,
-                                size: 150,
+                              child: Image.network(
+                                'https://firebasestorage.googleapis.com/v0/b/cmsc4303-kylec-photomemoapp.appspot.com/o/default_profile_picture%2Fdefault_profile_picture.png?alt=media&token=4dbf1d59-7442-4609-b3a2-32ccfcc8a161',
+                                width: 150,
                               ),
                             )
                           : ClipOval(
@@ -225,6 +182,59 @@ class _SignUpState extends State<SignUpScreen> {
                   SizedBox(
                     height: 15.0,
                   ),
+                  con.undefinedErrorMessage == null
+                      ? SizedBox(
+                          height: 1.0,
+                        )
+                      : Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '• ' + con.undefinedErrorMessage,
+                            style: TextStyle(color: Colors.red, fontSize: 18.0),
+                          ),
+                        ),
+                  con.emailErrorMessage == null
+                      ? SizedBox(
+                          height: 1.0,
+                        )
+                      : Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '• ' + con.emailErrorMessage,
+                            style: TextStyle(color: Colors.red, fontSize: 18.0),
+                          ),
+                        ),
+                  con.usernameErrorMessage == null
+                      ? SizedBox(
+                          height: 1.0,
+                        )
+                      : Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '• ' + con.usernameErrorMessage,
+                            style: TextStyle(color: Colors.red, fontSize: 18.0),
+                          ),
+                        ),
+                  con.passwordErrorMessage == null
+                      ? SizedBox(
+                          height: 1.0,
+                        )
+                      : Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '• ' + con.passwordErrorMessage,
+                            style: TextStyle(color: Colors.red, fontSize: 18.0),
+                          ),
+                        ),
+                  SizedBox(height: 20),
+                  progressMessage == null
+                      ? SizedBox(
+                          height: 1.0,
+                        )
+                      : Text(
+                          progressMessage,
+                          style: Theme.of(context).textTheme.headline6,
+                        ),
                   RaisedButton(
                     onPressed: con.createAccount,
                     child: Text(
@@ -295,11 +305,30 @@ class _Controller {
 
     if (errorExists) return;
 
+    MyDialog.circularProgressStart(state.context);
+
     try {
       await FirebaseController.createAccount(
-          email: email, password: password, username: username);
+        email: email,
+        password: password,
+        username: username,
+        profilePicture: state.photo != null ? state.photo : null,
+        listener: (double progress) {
+          state.render(() {
+            if (progress == null)
+              state.progressMessage = null;
+            else {
+              progress *= 100;
+              state.progressMessage =
+                  'Creating Account: ' + progress.toStringAsFixed(1) + ' %';
+            }
+          });
+        },
+      );
 
       state.render(() => undefinedErrorMessage = null);
+
+      MyDialog.circularProgressStop(state.context);
 
       MyDialog.info(
         context: state.context,
@@ -311,16 +340,18 @@ class _Controller {
         },
       );
     } catch (e) {
-      switch (e.code) {
-        case 'email-already-in-use':
-          state.render(() => emailErrorMessage = 'Email is already in use');
-          return;
-      }
+      MyDialog.circularProgressStop(state.context);
 
       switch (e.message) {
         case Constant.USERNAME_NOT_UNIQUE_ERROR:
           state
               .render(() => usernameErrorMessage = 'Username is already taken');
+          break;
+      }
+
+      switch (e.code) {
+        case 'email-already-in-use':
+          state.render(() => emailErrorMessage = 'Email is already in use');
           break;
         default:
           state.render(() => undefinedErrorMessage = '$e');

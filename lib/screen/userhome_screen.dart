@@ -76,9 +76,14 @@ class _UserHomeState extends State<UserHomeScreen> {
           child: ListView(
             children: [
               UserAccountsDrawerHeader(
-                  currentAccountPicture: Icon(Icons.person, size: 100.0),
-                  accountName: Text('Not set'),
-                  accountEmail: Text(user.email)),
+                currentAccountPicture: CircleAvatar(
+                  backgroundImage: NetworkImage(
+                    user.photoURL,
+                  ),
+                ),
+                accountName: Text(user.displayName),
+                accountEmail: Text(user.email),
+              ),
               ListTile(
                 leading: Icon(Icons.people),
                 title: Text('Shared With Me'),
@@ -86,7 +91,7 @@ class _UserHomeState extends State<UserHomeScreen> {
               ),
               ListTile(
                 leading: Icon(Icons.settings),
-                title: Text('Settings'),
+                title: Text('Account Settings'),
                 onTap: null,
               ),
               ListTile(

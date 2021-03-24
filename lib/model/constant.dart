@@ -20,4 +20,7 @@ class Constant {
   static const USERNAME_FIELD = 'username';
   static const USERNAME_NOT_UNIQUE_ERROR = 'USERNAME_NOT_UNIQUE';
   static const USERNAME_OWNER_FIELD = 'owner';
+
+  static const DEFAULT_PROFILE_PICTURE_FOLDER = 'default_profile_picture';
+  static const DEFAULT_PROFILE_PICTURE_NAME = 'default_profile_picture.png';
 }
