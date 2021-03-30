@@ -172,8 +172,7 @@ class FirebaseController {
             '${Constant.PROFILE_PICTURES_FOLDER}/${user.uid}/${DateTime.now()}',
       );
 
-      await addProfilePicture(
-          userEmail: user.email, profilePictureInfo: photoInfo);
+      await addProfilePicture(uid: user.uid, profilePictureInfo: photoInfo);
 
       profilePictureURL = photoInfo[Constant.ARG_DOWNLOADURL];
     }
@@ -185,16 +184,16 @@ class FirebaseController {
         .collection(Constant.USERNAME_COLLECTION)
         .add(<String, dynamic>{
       Constant.ARG_USERNAME: username,
-      Constant.ARG_OWNER: email
+      Constant.ARG_OWNER: user.uid
     });
   }
 
   static Future<String> addProfilePicture(
-      {@required String userEmail,
+      {@required String uid,
       @required Map<String, String> profilePictureInfo}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.PROFILE_PICTURES_COLLECTION)
-        .where(Constant.ARG_OWNER, isEqualTo: userEmail)
+        .where(Constant.ARG_OWNER, isEqualTo: uid)
         .get();
 
     var ref;
@@ -203,7 +202,7 @@ class FirebaseController {
       ref = await FirebaseFirestore.instance
           .collection(Constant.PROFILE_PICTURES_COLLECTION)
           .add({
-        Constant.ARG_OWNER: userEmail,
+        Constant.ARG_OWNER: uid,
         Constant.ARG_FILENAME: profilePictureInfo[Constant.ARG_FILENAME]
       });
       docId = ref.id;
@@ -238,7 +237,7 @@ class FirebaseController {
 
     querySnapShot = await FirebaseFirestore.instance
         .collection(Constant.USERNAME_COLLECTION)
-        .where(Constant.ARG_OWNER, isEqualTo: user.email)
+        .where(Constant.ARG_OWNER, isEqualTo: user.uid)
         .get();
 
     String docId = '';
@@ -255,39 +254,7 @@ class FirebaseController {
   }
 
   static Future<void> changeEmail({@required user, @required newEmail}) async {
-    String oldEmail = user.email;
-
-    await user.updateProfile(email: newEmail);
-
-    QuerySnapshot querySnapShot = await FirebaseFirestore.instance
-        .collection(Constant.USERNAME_COLLECTION)
-        .where(Constant.ARG_OWNER, isEqualTo: oldEmail)
-        .get();
-
-    String docId = '';
-    querySnapShot.docs.forEach((doc) {
-      docId = doc.id;
-    });
-
-    await FirebaseFirestore.instance
-        .collection(Constant.USERNAME_COLLECTION)
-        .doc(docId)
-        .update({Constant.ARG_OWNER: newEmail});
-
-    querySnapShot = await FirebaseFirestore.instance
-        .collection(Constant.PROFILE_PICTURES_COLLECTION)
-        .where(Constant.ARG_OWNER, isEqualTo: oldEmail)
-        .get();
-
-    docId = '';
-    querySnapShot.docs.forEach((doc) {
-      docId = doc.id;
-    });
-
-    await FirebaseFirestore.instance
-        .collection(Constant.PROFILE_PICTURES_COLLECTION)
-        .doc(docId)
-        .update({Constant.ARG_OWNER: newEmail});
+    await user.updateEmail(newEmail);
   }
 
   static Future<void> changePassword(
@@ -305,7 +272,7 @@ class FirebaseController {
       @required Function listener}) async {
     QuerySnapshot querySnapShot = await FirebaseFirestore.instance
         .collection(Constant.PROFILE_PICTURES_COLLECTION)
-        .where(Constant.ARG_OWNER, isEqualTo: user.email)
+        .where(Constant.ARG_OWNER, isEqualTo: user.uid)
         .get();
 
     String filename;
@@ -323,8 +290,7 @@ class FirebaseController {
 
     Map photoInfo = await uploadPhotoFile(
         photo: photo, filename: filename, uid: user.uid, listener: listener);
-    await addProfilePicture(
-        userEmail: user.email, profilePictureInfo: photoInfo);
+    await addProfilePicture(uid: user.uid, profilePictureInfo: photoInfo);
 
     await user.updateProfile(photoURL: photoInfo[Constant.ARG_DOWNLOADURL]);
   }

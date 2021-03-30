@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lesson3/model/constant.dart';
 import 'package:lesson3/screen/accountsettings_screen.dart';
 import 'package:lesson3/screen/addphotomemo_screen.dart';
+import 'package:lesson3/screen/changeemail_screen.dart';
 import 'package:lesson3/screen/changepassword_screen.dart';
 import 'package:lesson3/screen/changeprofilepicture_screen.dart';
 import 'package:lesson3/screen/changeusername_screen.dart';
@@ -42,6 +43,7 @@ class PhotoMemoApp extends StatelessWidget {
           ChangePasswordScreen.routeName: (context) => ChangePasswordScreen(),
           ChangeProfilePictureScreen.routeName: (context) =>
               ChangeProfilePictureScreen(),
+          ChangeEmailScreen.routeName: (context) => ChangeEmailScreen(),
         });
   }
 }

@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lesson3/model/constant.dart';
+import 'package:lesson3/screen/changeemail_screen.dart';
 import 'package:lesson3/screen/changepassword_screen.dart';
 import 'package:lesson3/screen/changeprofilepicture_screen.dart';
 import 'package:lesson3/screen/changeusername_screen.dart';
@@ -88,8 +89,12 @@ class _Controller {
     state.render(() => state.args = result);
   }
 
-  void changeEmail() {
-    //Navigator.pushNamed(state.context, ChangeEmail.routeName);
+  void changeEmail() async {
+    final result = await Navigator.pushNamed(
+        state.context, ChangeEmailScreen.routeName,
+        arguments: state.args);
+
+    state.render(() => state.args = result);
   }
 
   void changeProfilePicture() async {

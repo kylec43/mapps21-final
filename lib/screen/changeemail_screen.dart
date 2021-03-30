@@ -4,15 +4,15 @@ import 'package:lesson3/controller/firebasecontroller.dart';
 import 'package:lesson3/model/constant.dart';
 import 'package:lesson3/screen/myview/mydialog.dart';
 
-class ChangePasswordScreen extends StatefulWidget {
-  static const routeName = '/changePasswordScreen';
+class ChangeEmailScreen extends StatefulWidget {
+  static const routeName = '/changeEmailScreen';
   @override
   State<StatefulWidget> createState() {
-    return _ChangePasswordState();
+    return _ChangeEmailState();
   }
 }
 
-class _ChangePasswordState extends State<ChangePasswordScreen> {
+class _ChangeEmailState extends State<ChangeEmailScreen> {
   _Controller con;
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
   User user;
@@ -100,7 +100,7 @@ class _ChangePasswordState extends State<ChangePasswordScreen> {
 }
 
 class _Controller {
-  _ChangePasswordState state;
+  _ChangeEmailState state;
   _Controller(this.state);
   String newEmail;
   String confirmEmail;
