@@ -132,7 +132,8 @@ class _Controller {
     }
 
     try {
-      await FirebaseController.changePassword(newPassword);
+      await FirebaseController.changePassword(
+          user: state.user, newPassword: newPassword);
 
       User user = FirebaseController.getCurrentUser();
       state.render(() => state.args[Constant.ARG_USER] = user);

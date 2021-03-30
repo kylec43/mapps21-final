@@ -24,5 +24,6 @@ class Constant {
   static const DEFAULT_PROFILE_PICTURE_FOLDER = 'default_profile_picture';
   static const DEFAULT_PROFILE_PICTURE_NAME = 'default_profile_picture.png';
 
+  static const PROFILE_PICTURES_FOLDER = 'profile_pictures';
   static const PROFILE_PICTURES_COLLECTION = 'profilePictures';
 }

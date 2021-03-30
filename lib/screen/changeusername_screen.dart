@@ -119,7 +119,8 @@ class _Controller {
     }
 
     try {
-      await FirebaseController.changeUsername(newUsername);
+      await FirebaseController.changeUsername(
+          user: state.user, newUsername: newUsername);
 
       User user = FirebaseController.getCurrentUser();
       state.render(() => state.args[Constant.ARG_USER] = user);

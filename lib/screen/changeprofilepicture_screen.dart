@@ -153,7 +153,6 @@ class _Controller {
     try {
       await FirebaseController.changeProfilePicture(
         user: state.user,
-        uid: state.user.uid,
         photo: state.photo,
         listener: (double progress) {
           state.render(() {
