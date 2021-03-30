@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lesson3/controller/firebasecontroller.dart';
 import 'package:lesson3/screen/myview/mydialog.dart';
-import 'package:lesson3/model/constant.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   static const routeName = '/forgotPasswordScreen';
@@ -30,29 +29,14 @@ class _ForgotPasswordState extends State<ForgotPasswordScreen> {
         title: Text('Forgot Password?'),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: formKey,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 60.0),
+        padding: const EdgeInsets.only(right: 24.0, left: 24),
+        child: Center(
+          child: Form(
+            key: formKey,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                con.undefinedErrorMessage == null
-                    ? SizedBox(
-                        height: 1.0,
-                      )
-                    : Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '• ' + con.undefinedErrorMessage,
-                          style: TextStyle(color: Colors.red, fontSize: 18.0),
-                        ),
-                      ),
-                SizedBox(
-                  height: 15.0,
-                ),
                 Text(
                   'Enter your email',
                   style: Theme.of(context).textTheme.headline5,
@@ -68,6 +52,20 @@ class _ForgotPasswordState extends State<ForgotPasswordScreen> {
                   autocorrect: false,
                   onSaved: con.saveEmail,
                 ),
+                SizedBox(
+                  height: 15.0,
+                ),
+                con.errorMessage == null
+                    ? SizedBox(
+                        height: 1.0,
+                      )
+                    : Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '• ' + con.errorMessage,
+                          style: TextStyle(color: Colors.red, fontSize: 18.0),
+                        ),
+                      ),
                 SizedBox(
                   height: 15.0,
                 ),
@@ -91,22 +89,30 @@ class _Controller {
   _ForgotPasswordState state;
   _Controller(this.state);
   String email;
-  String undefinedErrorMessage;
+  String errorMessage;
 
   void sendResetEmail() {
+    state.formKey.currentState.save();
+
+    if (!validEmail()) {
+      state.render(() => errorMessage = 'Email is invalid');
+      return;
+    }
+
     try {
       FirebaseController.sendResetEmail(email);
 
       MyDialog.info(
           context: state.context,
           title: 'Email Sent',
-          content: 'A reset password link has been sent to your email.',
+          content:
+              'A reset password link has been sent to your email if it is registered.',
           onPressed: () {
             Navigator.of(state.context).pop();
             Navigator.of(state.context).pop();
           });
     } catch (e) {
-      state.render(() => undefinedErrorMessage = '$e');
+      state.render(() => errorMessage = '$e');
     }
   }
 

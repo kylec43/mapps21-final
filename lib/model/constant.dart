@@ -13,14 +13,16 @@ class Constant {
 
   static const ARG_DOWNLOADURL = 'downloadurl';
   static const ARG_FILENAME = 'filename';
+  static const ARG_OWNER = 'owner';
+  static const ARG_USERNAME = 'username';
 
   static const MIN_ML_CONFIDENCE = 0.7;
 
   static const USERNAME_COLLECTION = 'user_names';
-  static const USERNAME_FIELD = 'username';
   static const USERNAME_NOT_UNIQUE_ERROR = 'USERNAME_NOT_UNIQUE';
-  static const USERNAME_OWNER_FIELD = 'owner';
 
   static const DEFAULT_PROFILE_PICTURE_FOLDER = 'default_profile_picture';
   static const DEFAULT_PROFILE_PICTURE_NAME = 'default_profile_picture.png';
+
+  static const PROFILE_PICTURES_COLLECTION = 'profilePictures';
 }

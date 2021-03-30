@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lesson3/controller/firebasecontroller.dart';
 import 'package:lesson3/screen/myview/mydialog.dart';
@@ -61,9 +62,14 @@ class _SignUpState extends State<SignUpScreen> {
                       height: MediaQuery.of(context).size.height * 0.3,
                       child: photo == null
                           ? ClipOval(
-                              child: Image.network(
-                                'https://firebasestorage.googleapis.com/v0/b/cmsc4303-kylec-photomemoapp.appspot.com/o/default_profile_picture%2Fdefault_profile_picture.png?alt=media&token=4dbf1d59-7442-4609-b3a2-32ccfcc8a161',
-                                width: 150,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                    image: AssetImage(
+                                        "images/default_profile_picture.png"),
+                                    fit: BoxFit.fill,
+                                  ),
+                                ),
                               ),
                             )
                           : ClipOval(

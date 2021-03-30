@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lesson3/controller/firebasecontroller.dart';
 import 'package:lesson3/model/constant.dart';
 import 'package:lesson3/model/photomemo.dart';
+import 'package:lesson3/screen/accountsettings_screen.dart';
 import 'package:lesson3/screen/addphotomemo_screen.dart';
 import 'package:lesson3/screen/detailedview_screen.dart';
 import 'package:lesson3/screen/myview/mydialog.dart';
@@ -22,6 +23,7 @@ class _UserHomeState extends State<UserHomeScreen> {
   User user;
   List<PhotoMemo> photoMemoList;
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  Map args;
 
   @override
   void initState() {
@@ -33,8 +35,9 @@ class _UserHomeState extends State<UserHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    Map args = ModalRoute.of(context).settings.arguments;
-    user ??= args[Constant.ARG_USER];
+    args ??= ModalRoute.of(context).settings.arguments;
+    user = args[Constant.ARG_USER];
+
     photoMemoList ??= args[Constant.ARG_PHOTOMEMOLIST];
 
     return WillPopScope(
@@ -92,7 +95,7 @@ class _UserHomeState extends State<UserHomeScreen> {
               ListTile(
                 leading: Icon(Icons.settings),
                 title: Text('Account Settings'),
-                onTap: null,
+                onTap: con.accountSettings,
               ),
               ListTile(
                 leading: Icon(Icons.exit_to_app),
@@ -177,13 +180,14 @@ class _Controller {
   void onTap(int index) async {
     if (delIndex != null) return;
 
-    await Navigator.pushNamed(state.context, DetailedViewScreen.routeName,
+    final result = await Navigator.pushNamed(
+        state.context, DetailedViewScreen.routeName,
         arguments: {
           Constant.ARG_USER: state.user,
           Constant.ARG_ONE_PHOTOMEMO: state.photoMemoList[index],
         });
 
-    state.render(() {});
+    state.render(() => state.args = result);
   }
 
   void sharedWithMe() async {
@@ -261,5 +265,12 @@ class _Controller {
       MyDialog.info(
           context: state.context, title: 'Search error', content: '$e');
     }
+  }
+
+  void accountSettings() async {
+    final result = await Navigator.pushNamed(
+        state.context, AccountSettingsScreen.routeName,
+        arguments: state.args);
+    state.render(() => state.args = result);
   }
 }
