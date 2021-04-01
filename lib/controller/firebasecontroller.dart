@@ -275,7 +275,8 @@ class FirebaseController {
         .where(Constant.ARG_OWNER, isEqualTo: user.uid)
         .get();
 
-    String filename;
+    String filename =
+        '${Constant.PROFILE_PICTURES_FOLDER}/${user.uid}/${DateTime.now()}';
 
     String defaultProfilePictureURL = await FirebaseStorage.instance
         .ref(
