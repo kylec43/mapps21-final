@@ -35,7 +35,6 @@ class _ChangeProfilePictureState extends State<ChangeProfilePictureScreen> {
   Widget build(BuildContext context) {
     args ??= ModalRoute.of(context).settings.arguments;
     user = args[Constant.ARG_USER];
-    print("=================" + user.photoURL);
 
     return WillPopScope(
       onWillPop: con.goBack,

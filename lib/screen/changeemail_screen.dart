@@ -35,7 +35,7 @@ class _ChangeEmailState extends State<ChangeEmailScreen> {
       onWillPop: con.goBack,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Change Password'),
+          title: Text('Change Email'),
         ),
         body: Padding(
           padding: const EdgeInsets.only(left: 24, right: 24),
@@ -85,7 +85,7 @@ class _ChangeEmailState extends State<ChangeEmailScreen> {
                   RaisedButton(
                     onPressed: con.changePassword,
                     child: Text(
-                      'Change password',
+                      'Change email',
                       style: Theme.of(context).textTheme.button,
                     ),
                   ),
