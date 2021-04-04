@@ -160,7 +160,7 @@ class _Controller {
   }
 
   Future<bool> goBack() async {
-    Navigator.pop(state.context, state.args);
+    Navigator.pop(state.context);
     return true;
   }
 }

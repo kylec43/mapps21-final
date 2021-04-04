@@ -146,6 +146,7 @@ class _Controller {
         },
       );
     } catch (e) {
+      state.render(() => errorMessage = '$e');
       switch (e.code) {
         case 'email-already-in-use':
           state.render(() => errorMessage = 'Email is already in use');
@@ -166,7 +167,7 @@ class _Controller {
   }
 
   Future<bool> goBack() async {
-    Navigator.pop(state.context, state.args);
+    Navigator.pop(state.context);
     return true;
   }
 }

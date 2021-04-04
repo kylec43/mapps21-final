@@ -8,6 +8,7 @@ import 'package:lesson3/screen/addphotomemo_screen.dart';
 import 'package:lesson3/screen/detailedview_screen.dart';
 import 'package:lesson3/screen/myview/mydialog.dart';
 import 'package:lesson3/screen/myview/myimage.dart';
+import 'package:lesson3/screen/photoview_screen.dart';
 import 'package:lesson3/screen/sharedwith_screen.dart';
 
 class UserHomeScreen extends StatefulWidget {
@@ -181,7 +182,7 @@ class _Controller {
     if (delIndex != null) return;
 
     final result = await Navigator.pushNamed(
-        state.context, DetailedViewScreen.routeName,
+        state.context, PhotoViewScreen.routeName,
         arguments: {
           Constant.ARG_USER: state.user,
           Constant.ARG_ONE_PHOTOMEMO: state.photoMemoList[index],
@@ -268,9 +269,7 @@ class _Controller {
   }
 
   void accountSettings() async {
-    final result = await Navigator.pushNamed(
-        state.context, AccountSettingsScreen.routeName,
+    await Navigator.pushNamed(state.context, AccountSettingsScreen.routeName,
         arguments: state.args);
-    state.render(() => state.args = result);
   }
 }

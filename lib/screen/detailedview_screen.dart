@@ -162,6 +162,45 @@ class _DetailedViewState extends State<DetailedViewScreen> {
                   : SizedBox(
                       height: 1.0,
                     ),
+              SizedBox(height: 15),
+              Row(children: [
+                Text(
+                  'Visibility:',
+                  style: TextStyle(
+                    fontSize: 20.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(width: 10),
+                editMode
+                    ? DropdownButton(
+                        value: onePhotoMemoTemp.visibility,
+                        icon: const Icon(Icons.arrow_downward),
+                        iconSize: 24,
+                        elevation: 16,
+                        style: const TextStyle(color: Colors.deepPurple),
+                        underline: Container(
+                          height: 2,
+                          color: Colors.deepPurpleAccent,
+                        ),
+                        onChanged: con.saveVisibility,
+                        items: [
+                          PhotoMemo.VISIBILITY_PUBLIC,
+                          PhotoMemo.VISIBILITY_SHARED_ONLY,
+                          PhotoMemo.VISIBILITY_PRIVATE
+                        ].map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(
+                              value,
+                              style: TextStyle(fontSize: 20),
+                            ),
+                          );
+                        }).toList(),
+                      )
+                    : Text(onePhotoMemoTemp.visibility,
+                        style: TextStyle(fontSize: 20)),
+              ]),
             ],
           ),
         ),
@@ -219,6 +258,10 @@ class _Controller {
       if (state.onePhotoMemoOriginal.memo != state.onePhotoMemoTemp.memo) {
         updateInfo[PhotoMemo.MEMO] = state.onePhotoMemoTemp.memo;
       }
+      if (state.onePhotoMemoOriginal.visibility !=
+          state.onePhotoMemoTemp.visibility) {
+        updateInfo[PhotoMemo.VISIBILITY] = state.onePhotoMemoTemp.visibility;
+      }
       if (!listEquals(state.onePhotoMemoOriginal.sharedWith,
           state.onePhotoMemoTemp.sharedWith)) {
         updateInfo[PhotoMemo.SHARED_WITH] = state.onePhotoMemoTemp.sharedWith;
@@ -274,5 +317,9 @@ class _Controller {
       state.onePhotoMemoTemp.sharedWith =
           value.split(RegExp('(,| )+')).map((e) => e.trim()).toList();
     }
+  }
+
+  void saveVisibility(String value) {
+    state.render(() => state.onePhotoMemoTemp.visibility = value);
   }
 }

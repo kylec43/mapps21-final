@@ -206,17 +206,13 @@ class _Controller {
     }
 
     try {
-      print('===========0');
-
       List<PhotoMemo> photoMemoList =
           await FirebaseController.getPhotoMemoList(email: user.email);
-      print('===========1');
       MyDialog.circularProgressStop(state.context);
       Navigator.pushNamed(state.context, UserHomeScreen.routeName, arguments: {
         Constant.ARG_USER: user,
         Constant.ARG_PHOTOMEMOLIST: photoMemoList,
       });
-      print('===============2');
     } catch (e) {
       MyDialog.circularProgressStop(state.context);
       MyDialog.info(

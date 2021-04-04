@@ -103,7 +103,10 @@ class FirebaseController {
 
     var result = <PhotoMemo>[];
     querySnapshot.docs.forEach((doc) {
-      result.add(PhotoMemo.deserialize(doc.data(), doc.id));
+      if (doc[PhotoMemo.VISIBILITY] == PhotoMemo.VISIBILITY_PUBLIC ||
+          doc[PhotoMemo.VISIBILITY] == PhotoMemo.VISIBILITY_SHARED_ONLY) {
+        result.add(PhotoMemo.deserialize(doc.data(), doc.id));
+      }
     });
 
     return result;
@@ -172,7 +175,7 @@ class FirebaseController {
             '${Constant.PROFILE_PICTURES_FOLDER}/${user.uid}/${DateTime.now()}',
       );
 
-      await addProfilePicture(uid: user.uid, profilePictureInfo: photoInfo);
+      await addProfilePicture(email: user.email, profilePictureInfo: photoInfo);
 
       profilePictureURL = photoInfo[Constant.ARG_DOWNLOADURL];
     }
@@ -184,16 +187,16 @@ class FirebaseController {
         .collection(Constant.USERNAME_COLLECTION)
         .add(<String, dynamic>{
       Constant.ARG_USERNAME: username,
-      Constant.ARG_OWNER: user.uid
+      Constant.ARG_OWNER: user.email
     });
   }
 
   static Future<String> addProfilePicture(
-      {@required String uid,
+      {@required String email,
       @required Map<String, String> profilePictureInfo}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.PROFILE_PICTURES_COLLECTION)
-        .where(Constant.ARG_OWNER, isEqualTo: uid)
+        .where(Constant.ARG_OWNER, isEqualTo: email)
         .get();
 
     var ref;
@@ -202,7 +205,7 @@ class FirebaseController {
       ref = await FirebaseFirestore.instance
           .collection(Constant.PROFILE_PICTURES_COLLECTION)
           .add({
-        Constant.ARG_OWNER: uid,
+        Constant.ARG_OWNER: email,
         Constant.ARG_FILENAME: profilePictureInfo[Constant.ARG_FILENAME]
       });
       docId = ref.id;
@@ -237,7 +240,7 @@ class FirebaseController {
 
     querySnapShot = await FirebaseFirestore.instance
         .collection(Constant.USERNAME_COLLECTION)
-        .where(Constant.ARG_OWNER, isEqualTo: user.uid)
+        .where(Constant.ARG_OWNER, isEqualTo: user.email)
         .get();
 
     String docId = '';
@@ -254,7 +257,9 @@ class FirebaseController {
   }
 
   static Future<void> changeEmail({@required user, @required newEmail}) async {
+    String oldEmail = user.email;
     await user.updateEmail(newEmail);
+    await updateEmailInFirestore(oldEmail: oldEmail, newEmail: newEmail);
   }
 
   static Future<void> changePassword(
@@ -272,7 +277,7 @@ class FirebaseController {
       @required Function listener}) async {
     QuerySnapshot querySnapShot = await FirebaseFirestore.instance
         .collection(Constant.PROFILE_PICTURES_COLLECTION)
-        .where(Constant.ARG_OWNER, isEqualTo: user.uid)
+        .where(Constant.ARG_OWNER, isEqualTo: user.email)
         .get();
 
     String filename =
@@ -291,8 +296,72 @@ class FirebaseController {
 
     Map photoInfo = await uploadPhotoFile(
         photo: photo, filename: filename, uid: user.uid, listener: listener);
-    await addProfilePicture(uid: user.uid, profilePictureInfo: photoInfo);
+    await addProfilePicture(email: user.email, profilePictureInfo: photoInfo);
 
     await user.updateProfile(photoURL: photoInfo[Constant.ARG_DOWNLOADURL]);
+  }
+
+  static Future<void> updateEmailInFirestore(
+      {@required oldEmail, @required newEmail}) async {
+    //Update profile picture owner to new email
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.PROFILE_PICTURES_COLLECTION)
+        .where(Constant.ARG_OWNER, isEqualTo: oldEmail)
+        .get();
+
+    String docId;
+    if (querySnapshot.size != 0) {
+      querySnapshot.docs.forEach((doc) {
+        docId = doc.id;
+      });
+      await FirebaseFirestore.instance
+          .collection(Constant.PROFILE_PICTURES_COLLECTION)
+          .doc(docId)
+          .update({Constant.ARG_OWNER: newEmail});
+    }
+
+    //Update username owner to new email
+    querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.USERNAME_COLLECTION)
+        .where(Constant.ARG_OWNER, isEqualTo: oldEmail)
+        .get();
+
+    if (querySnapshot.size != 0) {
+      querySnapshot.docs.forEach((doc) {
+        docId = doc.id;
+      });
+      await FirebaseFirestore.instance
+          .collection(Constant.USERNAME_COLLECTION)
+          .doc(docId)
+          .update({Constant.ARG_OWNER: newEmail});
+    }
+
+    //update shared with email to new email
+    querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.PHOTOMEMO_COLLECTION)
+        .where(PhotoMemo.SHARED_WITH, arrayContains: oldEmail)
+        .get();
+
+    var docIds = <String>[];
+    var newSharedWith = <dynamic>[];
+    if (querySnapshot.size != 0) {
+      querySnapshot.docs.forEach((doc) {
+        List<dynamic> sharedEmails = doc[PhotoMemo.SHARED_WITH];
+        var index = sharedEmails.indexOf(oldEmail);
+
+        sharedEmails[index] = newEmail;
+        newSharedWith.add(sharedEmails);
+        docIds.add(doc.id);
+      });
+
+      for (int i = 0; i < docIds.length; i++) {
+        print(docIds[i]);
+        print(newSharedWith[i]);
+        await FirebaseFirestore.instance
+            .collection(Constant.PHOTOMEMO_COLLECTION)
+            .doc(docIds[i])
+            .update({PhotoMemo.SHARED_WITH: newSharedWith[i]});
+      }
+    }
   }
 }

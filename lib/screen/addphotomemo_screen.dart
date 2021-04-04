@@ -23,6 +23,7 @@ class _AddPhotoMemoState extends State<AddPhotoMemoScreen> {
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
   File photo;
   String progressMessage;
+  String visibilityValue;
 
   @override
   void initState() {
@@ -37,6 +38,7 @@ class _AddPhotoMemoState extends State<AddPhotoMemoScreen> {
     Map args = ModalRoute.of(context).settings.arguments;
     user ??= args[Constant.ARG_USER];
     photoMemoList ??= args[Constant.ARG_PHOTOMEMOLIST];
+    visibilityValue ??= PhotoMemo.VISIBILITY_PUBLIC;
     return Scaffold(
       appBar: AppBar(
         title: Text('Add PhotoMemo'),
@@ -134,6 +136,42 @@ class _AddPhotoMemoState extends State<AddPhotoMemoScreen> {
                 validator: PhotoMemo.validateSharedWith,
                 onSaved: con.saveSharedWith,
               ),
+              SizedBox(height: 15),
+              Row(children: [
+                Text(
+                  'Visibility:',
+                  style: TextStyle(
+                    fontSize: 20.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(width: 10),
+                DropdownButton(
+                  value: visibilityValue,
+                  icon: const Icon(Icons.arrow_downward),
+                  iconSize: 24,
+                  elevation: 16,
+                  style: const TextStyle(color: Colors.deepPurple),
+                  underline: Container(
+                    height: 2,
+                    color: Colors.deepPurpleAccent,
+                  ),
+                  onChanged: con.saveVisibility,
+                  items: [
+                    PhotoMemo.VISIBILITY_PUBLIC,
+                    PhotoMemo.VISIBILITY_SHARED_ONLY,
+                    PhotoMemo.VISIBILITY_PRIVATE
+                  ].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(
+                        value,
+                        style: TextStyle(fontSize: 20),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ]),
             ],
           ),
         ),
@@ -230,5 +268,10 @@ class _Controller {
       tempMemo.sharedWith =
           value.split(RegExp('(,| )+')).map((e) => e.trim()).toList();
     }
+  }
+
+  void saveVisibility(String value) {
+    tempMemo.visibility = value;
+    state.render(() => state.visibilityValue = value);
   }
 }

@@ -74,39 +74,30 @@ class _Controller {
   _Controller(this.state);
 
   void changeUsername() async {
-    final result = await Navigator.pushNamed(
-        state.context, ChangeUsernameScreen.routeName,
+    await Navigator.pushNamed(state.context, ChangeUsernameScreen.routeName,
         arguments: state.args);
-
-    state.render(() => state.args = result);
   }
 
   void changePassword() async {
-    final result = await Navigator.pushNamed(
-        state.context, ChangePasswordScreen.routeName,
+    await Navigator.pushNamed(state.context, ChangePasswordScreen.routeName,
         arguments: state.args);
-
-    state.render(() => state.args = result);
+    state.render(() {});
   }
 
   void changeEmail() async {
-    final result = await Navigator.pushNamed(
-        state.context, ChangeEmailScreen.routeName,
+    await Navigator.pushNamed(state.context, ChangeEmailScreen.routeName,
         arguments: state.args);
-
-    state.render(() => state.args = result);
   }
 
   void changeProfilePicture() async {
-    final result = await Navigator.pushNamed(
+    await Navigator.pushNamed(
         state.context, ChangeProfilePictureScreen.routeName,
         arguments: state.args);
-
-    state.render(() => state.args = result);
+    //state.render(() => state.args = result);
   }
 
   Future<bool> goBack() async {
-    Navigator.pop(state.context, state.args);
+    Navigator.pop(state.context);
     return true;
   }
 }

@@ -8,6 +8,7 @@ class PhotoMemo {
   DateTime timestamp;
   List<dynamic> sharedWith; // list of email
   List<dynamic> imageLabels; // image identified by ML
+  String visibility;
 
   // key for Firestore document
   static const TITLE = 'title';
@@ -18,18 +19,23 @@ class PhotoMemo {
   static const TIMESTAMP = 'timestamp';
   static const SHARED_WITH = 'sharedWith';
   static const IMAGE_LABELS = 'imageLabels';
+  static const VISIBILITY = 'visibility';
 
-  PhotoMemo({
-    this.docId,
-    this.createdBy,
-    this.memo,
-    this.photoFilename,
-    this.photoURL,
-    this.timestamp,
-    this.title,
-    this.sharedWith,
-    this.imageLabels,
-  }) {
+  static const VISIBILITY_PUBLIC = 'public';
+  static const VISIBILITY_PRIVATE = 'private';
+  static const VISIBILITY_SHARED_ONLY = 'shared-only';
+
+  PhotoMemo(
+      {this.docId,
+      this.createdBy,
+      this.memo,
+      this.photoFilename,
+      this.photoURL,
+      this.timestamp,
+      this.title,
+      this.sharedWith,
+      this.imageLabels,
+      this.visibility}) {
     this.sharedWith ??= [];
     this.imageLabels ??= [];
   }
@@ -47,6 +53,7 @@ class PhotoMemo {
     this.sharedWith.addAll(p.sharedWith);
     this.imageLabels.clear();
     this.imageLabels.addAll(p.imageLabels);
+    this.visibility = p.visibility;
   }
 
   PhotoMemo.clone(PhotoMemo p) {
@@ -61,6 +68,7 @@ class PhotoMemo {
     this.sharedWith.addAll(p.sharedWith);
     this.imageLabels = [];
     this.imageLabels.addAll(p.imageLabels);
+    this.visibility = p.visibility;
   }
 
 // from Dart object to Firestore document
@@ -74,12 +82,11 @@ class PhotoMemo {
       TIMESTAMP: this.timestamp,
       SHARED_WITH: this.sharedWith,
       IMAGE_LABELS: this.imageLabels,
+      VISIBILITY: this.visibility,
     };
   }
 
   static PhotoMemo deserialize(Map<String, dynamic> doc, String docId) {
-    print('=======30');
-
     return PhotoMemo(
       docId: docId,
       createdBy: doc[CREATED_BY],
@@ -87,6 +94,7 @@ class PhotoMemo {
       memo: doc[MEMO],
       photoFilename: doc[PHOTO_FILENAME],
       photoURL: doc[PHOTO_URL],
+      visibility: doc[VISIBILITY],
       sharedWith: doc[SHARED_WITH],
       imageLabels: doc[IMAGE_LABELS],
       timestamp: doc[TIMESTAMP] == null
