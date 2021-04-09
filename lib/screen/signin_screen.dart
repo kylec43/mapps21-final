@@ -192,9 +192,11 @@ class _Controller {
     state.formKey.currentState.save();
 
     User user;
+    var userInfo;
     MyDialog.circularProgressStart(state.context);
     try {
       user = await FirebaseController.signIn(email: email, password: password);
+      userInfo = await FirebaseController.getUserAccountInfo(user: user);
     } catch (e) {
       MyDialog.circularProgressStop(state.context);
       MyDialog.info(
@@ -212,6 +214,7 @@ class _Controller {
       Navigator.pushNamed(state.context, UserHomeScreen.routeName, arguments: {
         Constant.ARG_USER: user,
         Constant.ARG_PHOTOMEMOLIST: photoMemoList,
+        Constant.ARG_USER_INFO: userInfo,
       });
     } catch (e) {
       MyDialog.circularProgressStop(state.context);

@@ -16,6 +16,7 @@ class _ChangeUsernameState extends State<ChangeUsernameScreen> {
   _Controller con;
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
   User user;
+  var userInfo;
   Map args;
 
   @override
@@ -30,6 +31,7 @@ class _ChangeUsernameState extends State<ChangeUsernameScreen> {
   Widget build(BuildContext context) {
     args ??= ModalRoute.of(context).settings.arguments;
     user = args[Constant.ARG_USER];
+    userInfo = args[Constant.ARG_USER_INFO];
 
     return WillPopScope(
       onWillPop: con.goBack,
@@ -47,7 +49,7 @@ class _ChangeUsernameState extends State<ChangeUsernameScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
-                    'Current Username: ${user.displayName}',
+                    'Current Username: ${userInfo[Constant.ARG_USERNAME]}',
                     style: Theme.of(context).textTheme.headline5,
                   ),
                   SizedBox(
@@ -123,7 +125,11 @@ class _Controller {
           user: state.user, newUsername: newUsername);
 
       User user = FirebaseController.getCurrentUser();
-      state.render(() => state.args[Constant.ARG_USER] = user);
+      var userInfo = await FirebaseController.getUserAccountInfo(user: user);
+      state.render(() {
+        state.args[Constant.ARG_USER] = user;
+        state.args[Constant.ARG_USER_INFO] = userInfo;
+      });
 
       MyDialog.info(
         context: state.context,

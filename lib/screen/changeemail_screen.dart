@@ -16,6 +16,7 @@ class _ChangeEmailState extends State<ChangeEmailScreen> {
   _Controller con;
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
   User user;
+  var userInfo;
   Map args;
 
   @override
@@ -30,6 +31,7 @@ class _ChangeEmailState extends State<ChangeEmailScreen> {
   Widget build(BuildContext context) {
     args ??= ModalRoute.of(context).settings.arguments;
     user = args[Constant.ARG_USER];
+    userInfo = args[Constant.ARG_USER_INFO];
 
     return WillPopScope(
       onWillPop: con.goBack,
@@ -135,7 +137,11 @@ class _Controller {
           user: state.user, newEmail: newEmail);
 
       User user = FirebaseController.getCurrentUser();
-      state.render(() => state.args[Constant.ARG_USER] = user);
+      var userInfo = await FirebaseController.getUserAccountInfo(user: user);
+      state.render(() {
+        state.args[Constant.ARG_USER] = user;
+        state.args[Constant.ARG_USER_INFO] = userInfo;
+      });
 
       MyDialog.info(
         context: state.context,

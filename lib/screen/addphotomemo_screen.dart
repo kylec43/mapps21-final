@@ -219,6 +219,8 @@ class _Controller {
       tempMemo.timestamp = DateTime.now();
       tempMemo.createdBy = state.user.email;
       tempMemo.imageLabels = imageLabels;
+      if (tempMemo.visibility == null)
+        tempMemo.visibility = PhotoMemo.VISIBILITY_PUBLIC;
       String docId = await FirebaseController.addPhotoMemo(tempMemo);
       tempMemo.docId = docId;
       state.photoMemoList.insert(0, tempMemo);

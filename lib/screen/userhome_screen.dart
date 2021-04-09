@@ -5,7 +5,6 @@ import 'package:lesson3/model/constant.dart';
 import 'package:lesson3/model/photomemo.dart';
 import 'package:lesson3/screen/accountsettings_screen.dart';
 import 'package:lesson3/screen/addphotomemo_screen.dart';
-import 'package:lesson3/screen/detailedview_screen.dart';
 import 'package:lesson3/screen/myview/mydialog.dart';
 import 'package:lesson3/screen/myview/myimage.dart';
 import 'package:lesson3/screen/photoview_screen.dart';
@@ -22,6 +21,7 @@ class UserHomeScreen extends StatefulWidget {
 class _UserHomeState extends State<UserHomeScreen> {
   _Controller con;
   User user;
+  var userInfo;
   List<PhotoMemo> photoMemoList;
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
   Map args;
@@ -38,6 +38,7 @@ class _UserHomeState extends State<UserHomeScreen> {
   Widget build(BuildContext context) {
     args ??= ModalRoute.of(context).settings.arguments;
     user = args[Constant.ARG_USER];
+    userInfo = args[Constant.ARG_USER_INFO];
 
     photoMemoList ??= args[Constant.ARG_PHOTOMEMOLIST];
 
@@ -82,10 +83,12 @@ class _UserHomeState extends State<UserHomeScreen> {
               UserAccountsDrawerHeader(
                 currentAccountPicture: CircleAvatar(
                   backgroundImage: NetworkImage(
-                    user.photoURL,
+                    userInfo[Constant.ARG_PROFILE_PICTURE_URL],
                   ),
                 ),
-                accountName: Text(user.displayName),
+                accountName: Text(
+                  userInfo[Constant.ARG_USERNAME],
+                ),
                 accountEmail: Text(user.email),
               ),
               ListTile(
@@ -161,6 +164,7 @@ class _Controller {
       AddPhotoMemoScreen.routeName,
       arguments: {
         Constant.ARG_USER: state.user,
+        Constant.ARG_USER_INFO: state.userInfo,
         Constant.ARG_PHOTOMEMOLIST: state.photoMemoList
       },
     );
@@ -181,14 +185,29 @@ class _Controller {
   void onTap(int index) async {
     if (delIndex != null) return;
 
-    final result = await Navigator.pushNamed(
-        state.context, PhotoViewScreen.routeName,
+    String onePhotoMemoUsername;
+    String onePhotoMemoProfileURL;
+    List<dynamic> onePhotoMemoComments;
+    try {
+      onePhotoMemoUsername = await FirebaseController.getUsername(
+          email: state.photoMemoList[index].createdBy);
+      onePhotoMemoProfileURL = await FirebaseController.getProfilePicture(
+          email: state.photoMemoList[index].createdBy);
+      onePhotoMemoComments = await FirebaseController.getComments(
+          photoFilename: state.photoMemoList[index].photoFilename);
+    } catch (e) {
+      print('============================$e');
+    }
+    await Navigator.pushNamed(state.context, PhotoViewScreen.routeName,
         arguments: {
           Constant.ARG_USER: state.user,
+          Constant.ARG_USER_INFO: state.userInfo,
           Constant.ARG_ONE_PHOTOMEMO: state.photoMemoList[index],
+          Constant.ARG_ONE_PHOTOMEMO_USERNAME: onePhotoMemoUsername,
+          Constant.ARG_ONE_PHOTOMEMO_PROFILE_PICTURE_URL:
+              onePhotoMemoProfileURL,
+          Constant.ARG_ONE_PHOTOMEMO_COMMENTS: onePhotoMemoComments,
         });
-
-    state.render(() => state.args = result);
   }
 
   void sharedWithMe() async {
@@ -200,6 +219,7 @@ class _Controller {
       await Navigator.pushNamed(state.context, SharedWithScreen.routeName,
           arguments: {
             Constant.ARG_USER: state.user,
+            Constant.ARG_USER_INFO: state.userInfo,
             Constant.ARG_PHOTOMEMOLIST: photoMemoList,
           });
       Navigator.pop(state.context);
@@ -271,5 +291,15 @@ class _Controller {
   void accountSettings() async {
     await Navigator.pushNamed(state.context, AccountSettingsScreen.routeName,
         arguments: state.args);
+
+    try {
+      List<PhotoMemo> results =
+          await FirebaseController.getPhotoMemoList(email: state.user.email);
+
+      state.render(() => state.photoMemoList = results);
+    } catch (e) {
+      MyDialog.info(
+          context: state.context, title: 'Search error', content: '$e');
+    }
   }
 }

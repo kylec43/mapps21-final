@@ -19,6 +19,7 @@ class _ChangeProfilePictureState extends State<ChangeProfilePictureScreen> {
   _Controller con;
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
   User user;
+  var userInfo;
   Map args;
   File photo;
   String progressMessage;
@@ -35,6 +36,7 @@ class _ChangeProfilePictureState extends State<ChangeProfilePictureScreen> {
   Widget build(BuildContext context) {
     args ??= ModalRoute.of(context).settings.arguments;
     user = args[Constant.ARG_USER];
+    userInfo = args[Constant.ARG_USER_INFO];
 
     return WillPopScope(
       onWillPop: con.goBack,
@@ -58,7 +60,7 @@ class _ChangeProfilePictureState extends State<ChangeProfilePictureScreen> {
                   child: photo == null
                       ? ClipOval(
                           child: Image.network(
-                            user.photoURL,
+                            userInfo[Constant.ARG_PROFILE_PICTURE_URL],
                             fit: BoxFit.fill,
                           ),
                         )
@@ -147,6 +149,8 @@ class _Controller {
       return;
     }
 
+    errorMessage = null;
+
     MyDialog.circularProgressStart(state.context);
 
     try {
@@ -170,7 +174,11 @@ class _Controller {
       MyDialog.circularProgressStop(state.context);
 
       User user = FirebaseController.getCurrentUser();
-      state.render(() => state.args[Constant.ARG_USER] = user);
+      var userInfo = await FirebaseController.getUserAccountInfo(user: user);
+      state.render(() {
+        state.args[Constant.ARG_USER] = user;
+        state.args[Constant.ARG_USER_INFO] = userInfo;
+      });
 
       MyDialog.info(
         context: state.context,

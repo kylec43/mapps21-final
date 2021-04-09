@@ -21,6 +21,7 @@ class DetailedViewScreen extends StatefulWidget {
 class _DetailedViewState extends State<DetailedViewScreen> {
   _Controller con;
   User user;
+  var userInfo;
   PhotoMemo onePhotoMemoOriginal;
   PhotoMemo onePhotoMemoTemp;
   bool editMode = false;
@@ -39,6 +40,8 @@ class _DetailedViewState extends State<DetailedViewScreen> {
   Widget build(BuildContext context) {
     Map args = ModalRoute.of(context).settings.arguments;
     user ??= args[Constant.ARG_USER];
+    userInfo ??= args[Constant.ARG_USER_INFO];
+
     onePhotoMemoOriginal ??= args[Constant.ARG_ONE_PHOTOMEMO];
     onePhotoMemoTemp ??= PhotoMemo.clone(onePhotoMemoOriginal);
     return Scaffold(
