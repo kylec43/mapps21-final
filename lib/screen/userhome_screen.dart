@@ -7,6 +7,7 @@ import 'package:lesson3/screen/accountsettings_screen.dart';
 import 'package:lesson3/screen/addphotomemo_screen.dart';
 import 'package:lesson3/screen/myview/mydialog.dart';
 import 'package:lesson3/screen/myview/myimage.dart';
+import 'package:lesson3/screen/notification_screen.dart';
 import 'package:lesson3/screen/photoview_screen.dart';
 import 'package:lesson3/screen/sharedwith_screen.dart';
 
@@ -92,11 +93,6 @@ class _UserHomeState extends State<UserHomeScreen> {
                 accountEmail: Text(user.email),
               ),
               ListTile(
-                leading: Icon(Icons.people),
-                title: Text('Shared With Me'),
-                onTap: con.sharedWithMe,
-              ),
-              ListTile(
                 leading: Icon(Icons.settings),
                 title: Text('Account Settings'),
                 onTap: con.accountSettings,
@@ -147,6 +143,25 @@ class _UserHomeState extends State<UserHomeScreen> {
                   ),
                 ),
               ),
+        bottomNavigationBar: BottomNavigationBar(
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people),
+              label: 'Shared With Me',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.notification_important),
+              label: 'Notifications',
+            ),
+          ],
+          currentIndex: 0,
+          selectedItemColor: Colors.amber[800],
+          onTap: con.onNavBarTapped,
+        ),
       ),
     );
   }
@@ -188,7 +203,19 @@ class _Controller {
     String onePhotoMemoUsername;
     String onePhotoMemoProfileURL;
     List<dynamic> onePhotoMemoComments;
+    List<dynamic> onePhotoMemoLikes;
+    bool onePhotoMemoLiked = false;
     try {
+      onePhotoMemoLikes = await FirebaseController.getLikes(
+          photoFilename: state.photoMemoList[index].photoFilename);
+
+      if (await FirebaseController.likeExists(
+          photoFilename: state.photoMemoList[index].photoFilename,
+          email: state.user.email)) {
+        onePhotoMemoLiked = true;
+        print('===============================TTTRRRRUEEEEEE');
+      }
+
       onePhotoMemoUsername = await FirebaseController.getUsername(
           email: state.photoMemoList[index].createdBy);
       onePhotoMemoProfileURL = await FirebaseController.getProfilePicture(
@@ -207,6 +234,8 @@ class _Controller {
           Constant.ARG_ONE_PHOTOMEMO_PROFILE_PICTURE_URL:
               onePhotoMemoProfileURL,
           Constant.ARG_ONE_PHOTOMEMO_COMMENTS: onePhotoMemoComments,
+          Constant.ARG_ONE_PHOTOMEMO_LIKES: onePhotoMemoLikes,
+          Constant.ARG_ONE_PHOTOMEMO_LIKED: onePhotoMemoLiked,
         });
   }
 
@@ -216,7 +245,30 @@ class _Controller {
           await FirebaseController.getPhotoMemoSharedWithMe(
         email: state.user.email,
       );
+
       await Navigator.pushNamed(state.context, SharedWithScreen.routeName,
+          arguments: {
+            Constant.ARG_USER: state.user,
+            Constant.ARG_USER_INFO: state.userInfo,
+            Constant.ARG_PHOTOMEMOLIST: photoMemoList,
+          });
+      Navigator.pop(state.context);
+    } catch (e) {
+      MyDialog.info(
+        context: state.context,
+        title: 'get Shared PhotoMemo error',
+        content: '$e',
+      );
+    }
+  }
+
+  void notification() async {
+    try {
+      List<PhotoMemo> photoMemoList =
+          await FirebaseController.getPhotoMemoSharedWithMe(
+        email: state.user.email,
+      );
+      await Navigator.pushNamed(state.context, NotificationScreen.routeName,
           arguments: {
             Constant.ARG_USER: state.user,
             Constant.ARG_USER_INFO: state.userInfo,
@@ -300,6 +352,14 @@ class _Controller {
     } catch (e) {
       MyDialog.info(
           context: state.context, title: 'Search error', content: '$e');
+    }
+  }
+
+  void onNavBarTapped(int index) {
+    if (index == 1) {
+      sharedWithMe();
+    } else if (index == 2) {
+      notification();
     }
   }
 }

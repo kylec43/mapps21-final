@@ -4,7 +4,11 @@ import 'package:lesson3/controller/firebasecontroller.dart';
 import 'package:lesson3/model/constant.dart';
 import 'package:lesson3/model/photomemo.dart';
 import 'package:lesson3/screen/myview/myimage.dart';
+import 'package:lesson3/screen/notification_screen.dart';
 import 'package:lesson3/screen/photoview_screen.dart';
+import 'package:lesson3/screen/userhome_screen.dart';
+
+import 'myview/mydialog.dart';
 
 class SharedWithScreen extends StatefulWidget {
   static const routeName = '/sharedWithScreen';
@@ -35,8 +39,11 @@ class _SharedWithState extends State<SharedWithScreen> {
     userInfo ??= args[Constant.ARG_USER_INFO];
 
     photoMemoList ??= args[Constant.ARG_PHOTOMEMOLIST];
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () => Future.value(false),
+      child: Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: false,
           title: Text('Shared With Me'),
         ),
         body: photoMemoList.length == 0
@@ -75,7 +82,28 @@ class _SharedWithState extends State<SharedWithScreen> {
                     ),
                   ),
                 ),
-              ));
+              ),
+        bottomNavigationBar: BottomNavigationBar(
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people),
+              label: 'Shared With Me',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.notification_important),
+              label: 'Notifications',
+            ),
+          ],
+          currentIndex: 1,
+          selectedItemColor: Colors.amber[800],
+          onTap: con.onNavBarTapped,
+        ),
+      ),
+    );
   }
 }
 
@@ -87,7 +115,18 @@ class _Controller {
     String onePhotoMemoUsername;
     String onePhotoMemoProfileURL;
     List<dynamic> onePhotoMemoComments;
+    List<dynamic> onePhotoMemoLikes;
+    bool onePhotoMemoLiked = false;
     try {
+      onePhotoMemoLikes = await FirebaseController.getLikes(
+          photoFilename: state.photoMemoList[index].photoFilename);
+
+      if (await FirebaseController.likeExists(
+          photoFilename: state.photoMemoList[index].photoFilename,
+          email: state.user.email)) {
+        onePhotoMemoLiked = true;
+      }
+
       onePhotoMemoUsername = await FirebaseController.getUsername(
           email: state.photoMemoList[index].createdBy);
       onePhotoMemoProfileURL = await FirebaseController.getProfilePicture(
@@ -106,6 +145,56 @@ class _Controller {
           Constant.ARG_ONE_PHOTOMEMO_PROFILE_PICTURE_URL:
               onePhotoMemoProfileURL,
           Constant.ARG_ONE_PHOTOMEMO_COMMENTS: onePhotoMemoComments,
+          Constant.ARG_ONE_PHOTOMEMO_LIKES: onePhotoMemoLikes,
+          Constant.ARG_ONE_PHOTOMEMO_LIKED: onePhotoMemoLiked,
         });
+  }
+
+  void homeScreen() async {
+    try {
+      List<PhotoMemo> photoMemoList =
+          await FirebaseController.getPhotoMemoList(email: state.user.email);
+      Navigator.pushNamed(state.context, UserHomeScreen.routeName, arguments: {
+        Constant.ARG_USER: state.user,
+        Constant.ARG_PHOTOMEMOLIST: photoMemoList,
+        Constant.ARG_USER_INFO: state.userInfo,
+      });
+    } catch (e) {
+      MyDialog.info(
+        context: state.context,
+        title: 'Firestore getPhotoMemoList error',
+        content: '$e',
+      );
+    }
+  }
+
+  void notification() async {
+    try {
+      List<PhotoMemo> photoMemoList =
+          await FirebaseController.getPhotoMemoSharedWithMe(
+        email: state.user.email,
+      );
+      await Navigator.pushNamed(state.context, NotificationScreen.routeName,
+          arguments: {
+            Constant.ARG_USER: state.user,
+            Constant.ARG_USER_INFO: state.userInfo,
+            Constant.ARG_PHOTOMEMOLIST: photoMemoList,
+          });
+      Navigator.pop(state.context);
+    } catch (e) {
+      MyDialog.info(
+        context: state.context,
+        title: 'get Shared PhotoMemo error',
+        content: '$e',
+      );
+    }
+  }
+
+  void onNavBarTapped(int index) {
+    if (index == 0) {
+      homeScreen();
+    } else if (index == 2) {
+      notification();
+    } else {}
   }
 }

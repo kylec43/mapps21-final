@@ -26,6 +26,8 @@ class _PhotoViewState extends State<PhotoViewScreen> {
   Map args;
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
   List<dynamic> comments;
+  List<dynamic> likes;
+  bool liked;
   var commentInputController = TextEditingController();
 
   @override
@@ -47,6 +49,9 @@ class _PhotoViewState extends State<PhotoViewScreen> {
     onePhotoMemoProfilePictureURL ??=
         args[Constant.ARG_ONE_PHOTOMEMO_PROFILE_PICTURE_URL];
     comments ??= args[Constant.ARG_ONE_PHOTOMEMO_COMMENTS];
+    likes ??= args[Constant.ARG_ONE_PHOTOMEMO_LIKES];
+    liked ??= args[Constant.ARG_ONE_PHOTOMEMO_LIKED];
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Photo View'),
@@ -114,11 +119,19 @@ class _PhotoViewState extends State<PhotoViewScreen> {
                         SizedBox(
                           child: IconButton(
                               iconSize: 30,
-                              icon: const Icon(Icons.thumb_up_alt_outlined),
-                              onPressed: null),
+                              icon: liked
+                                  ? const Icon(
+                                      Icons.thumb_up_alt_rounded,
+                                      color: Colors.blue,
+                                    )
+                                  : const Icon(Icons.thumb_up_alt_outlined),
+                              onPressed: con.likeHandler),
                         ),
                         SizedBox(width: 5),
-                        Text('0 people like this'),
+                        likes.length == 1
+                            ? Text('1 person likes this')
+                            : Text(
+                                likes.length.toString() + " people like this"),
                       ],
                     ),
                   ),
@@ -317,6 +330,49 @@ class _Controller {
         title: 'Firestore delete comment error',
         content: '$e',
       );
+    }
+  }
+
+  void likeHandler() async {
+    if (await FirebaseController.likeExists(
+        photoFilename: state.onePhotoMemo.photoFilename,
+        email: state.user.email)) {
+      try {
+        List<dynamic> updatedLikes = await FirebaseController.deleteLike(
+            photoFilename: state.onePhotoMemo.photoFilename,
+            email: state.user.email);
+        state.render(() {
+          state.likes = updatedLikes;
+          state.liked = false;
+        });
+      } catch (e) {
+        MyDialog.info(
+          context: state.context,
+          title: 'Firestore delete like error',
+          content: '$e',
+        );
+      }
+    } else {
+      try {
+        await FirebaseController.uploadLike(
+          photoFilename: state.onePhotoMemo.photoFilename,
+          userEmail: state.user.email,
+        );
+
+        List<dynamic> newLikeList = await FirebaseController.getLikes(
+            photoFilename: state.onePhotoMemo.photoFilename);
+
+        state.render(() {
+          state.likes = newLikeList;
+          state.liked = true;
+        });
+      } catch (e) {
+        MyDialog.info(
+          context: state.context,
+          title: 'Like upload error',
+          content: '$e',
+        );
+      }
     }
   }
 }

@@ -466,4 +466,68 @@ class FirebaseController {
 
     return updatedComments;
   }
+
+  static Future<void> uploadLike(
+      {@required String photoFilename, @required String userEmail}) async {
+    await FirebaseFirestore.instance.collection(Constant.LIKES_COLLECTION).add({
+      Constant.ARG_EMAIL: userEmail,
+      PhotoMemo.PHOTO_FILENAME: photoFilename,
+      Constant.ARG_TIMESTAMP: DateTime.now(),
+    });
+  }
+
+  static Future<List<dynamic>> getLikes({@required photoFilename}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.LIKES_COLLECTION)
+        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+        .get();
+
+    var likes = <dynamic>[];
+    for (int i = 0; i < querySnapshot.docs.length; i++) {
+      String email = querySnapshot.docs[i][Constant.ARG_EMAIL];
+      var timestamp = querySnapshot.docs[i][Constant.ARG_TIMESTAMP];
+      likes.add({
+        Constant.ARG_EMAIL: email,
+        Constant.ARG_TIMESTAMP: timestamp,
+      });
+    }
+
+    return likes;
+  }
+
+  static Future<List<dynamic>> deleteLike(
+      {@required photoFilename, @required email}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.LIKES_COLLECTION)
+        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+        .where(Constant.ARG_EMAIL, isEqualTo: email)
+        .get();
+
+    var doc = querySnapshot.docs[0];
+    var docId = doc.id;
+
+    await FirebaseFirestore.instance
+        .collection(Constant.LIKES_COLLECTION)
+        .doc(docId)
+        .delete();
+
+    List<dynamic> updatedLikes = await getLikes(photoFilename: photoFilename);
+
+    return updatedLikes;
+  }
+
+  static Future<bool> likeExists(
+      {@required photoFilename, @required email}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.LIKES_COLLECTION)
+        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+        .where(Constant.ARG_EMAIL, isEqualTo: email)
+        .get();
+
+    if (querySnapshot.docs.length > 0) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 }

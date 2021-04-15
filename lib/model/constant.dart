@@ -18,6 +18,8 @@ class Constant {
   static const ARG_ONE_PHOTOMEMO_USERNAME = 'onePhotoMemoUsername';
   static const ARG_ONE_PHOTOMEMO_PROFILE_PICTURE_URL = 'onePhotoMemoProfileURL';
   static const ARG_ONE_PHOTOMEMO_COMMENTS = 'onePhotoMemoComments';
+  static const ARG_ONE_PHOTOMEMO_LIKES = 'onePhotoMemoLikes';
+  static const ARG_ONE_PHOTOMEMO_LIKED = 'onePhotoMemoLiked';
   static const ARG_TIMESTAMP = 'timestamp';
   static const ARG_COMMENT = 'comment';
   static const ARG_PHOTOURL = 'photoURL';
@@ -36,4 +38,6 @@ class Constant {
   static const ARG_PROFILE_PICTURE_URL = 'profile_picture_url';
 
   static const COMMENTS_COLLECTION = 'comments';
+
+  static const LIKES_COLLECTION = 'likes';
 }
