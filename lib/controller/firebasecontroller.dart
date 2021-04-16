@@ -399,23 +399,28 @@ class FirebaseController {
       {@required String photoFilename,
       @required String userEmail,
       @required String comment}) async {
+    var timestamp = DateTime.now();
     await FirebaseFirestore.instance
         .collection(Constant.COMMENTS_COLLECTION)
         .add({
       Constant.ARG_EMAIL: userEmail,
       PhotoMemo.PHOTO_FILENAME: photoFilename,
-      Constant.ARG_TIMESTAMP: DateTime.now(),
+      Constant.ARG_TIMESTAMP: timestamp,
       Constant.ARG_COMMENT: comment,
     });
 
     await uploadCommentNotification(
-        photoFilename: photoFilename, userEmail: userEmail, comment: comment);
+        photoFilename: photoFilename,
+        userEmail: userEmail,
+        comment: comment,
+        timestamp: timestamp);
   }
 
   static Future<void> uploadCommentNotification(
       {@required String photoFilename,
       @required String userEmail,
-      @required String comment}) async {
+      @required String comment,
+      @required timestamp}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.PHOTOMEMO_COLLECTION)
         .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
@@ -432,7 +437,7 @@ class FirebaseController {
         Constant.ARG_NOTIFICATION_TYPE: Constant.NOTIFICATION_TYPE_COMMENT,
         Constant.ARG_EMAIL: userEmail,
         PhotoMemo.PHOTO_FILENAME: photoFilename,
-        Constant.ARG_TIMESTAMP: DateTime.now(),
+        Constant.ARG_TIMESTAMP: timestamp,
         Constant.ARG_COMMENT: comment,
         Constant.ARG_READ: 'false',
       });
