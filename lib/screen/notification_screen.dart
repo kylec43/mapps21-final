@@ -4,6 +4,7 @@ import 'package:lesson3/controller/firebasecontroller.dart';
 import 'package:lesson3/model/constant.dart';
 import 'package:lesson3/model/photomemo.dart';
 import 'package:lesson3/screen/myview/mydialog.dart';
+import 'package:lesson3/screen/photoview_screen.dart';
 import 'package:lesson3/screen/sharedwith_screen.dart';
 import 'package:lesson3/screen/userhome_screen.dart';
 
@@ -21,6 +22,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   User user;
   var userInfo;
   Map args;
+  List<dynamic> notifications;
 
   @override
   void initState() {
@@ -35,6 +37,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     args ??= ModalRoute.of(context).settings.arguments;
     user = args[Constant.ARG_USER];
     userInfo = args[Constant.ARG_USER_INFO];
+    notifications ??= args[Constant.ARG_NOTIFICATIONS];
 
     return WillPopScope(
       onWillPop: () => Future.value(false),
@@ -43,7 +46,28 @@ class _NotificationScreenState extends State<NotificationScreen> {
           automaticallyImplyLeading: false,
           title: Text('Notifications'),
         ),
-        body: Text('Notification screen'),
+        body: Column(children: [
+          for (int i = 0; i < notifications.length; i++)
+            GestureDetector(
+              onTap: () => con.onTap(i),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: MediaQuery.of(context).size.width * 0.12,
+                    height: MediaQuery.of(context).size.height * 0.12,
+                    child: Image.network(
+                      notifications[i][Constant.ARG_ONE_PHOTOMEMO].photoURL,
+                      fit: BoxFit.fill,
+                    ),
+                  ),
+                  Flexible(
+                      child: Text("  " + notifications[i][Constant.ARG_MESSAGE],
+                          style: TextStyle(fontSize: 16))),
+                ],
+              ),
+            ),
+        ]),
         bottomNavigationBar: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
@@ -78,11 +102,19 @@ class _Controller {
           await FirebaseController.getPhotoMemoSharedWithMe(
         email: state.user.email,
       );
+
+      bool unreadNotification = false;
+      if (await FirebaseController.unreadNotificationExists(
+          owner: state.user.email)) {
+        unreadNotification = true;
+      }
+
       await Navigator.pushNamed(state.context, SharedWithScreen.routeName,
           arguments: {
             Constant.ARG_USER: state.user,
             Constant.ARG_USER_INFO: state.userInfo,
             Constant.ARG_PHOTOMEMOLIST: photoMemoList,
+            Constant.ARG_UNREAD_NOTIFICATION: unreadNotification,
           });
       Navigator.pop(state.context);
     } catch (e) {
@@ -98,10 +130,18 @@ class _Controller {
     try {
       List<PhotoMemo> photoMemoList =
           await FirebaseController.getPhotoMemoList(email: state.user.email);
+
+      bool unreadNotification = false;
+      if (await FirebaseController.unreadNotificationExists(
+          owner: state.user.email)) {
+        unreadNotification = true;
+      }
+
       Navigator.pushNamed(state.context, UserHomeScreen.routeName, arguments: {
         Constant.ARG_USER: state.user,
         Constant.ARG_PHOTOMEMOLIST: photoMemoList,
         Constant.ARG_USER_INFO: state.userInfo,
+        Constant.ARG_UNREAD_NOTIFICATION: unreadNotification,
       });
     } catch (e) {
       MyDialog.info(
@@ -118,5 +158,50 @@ class _Controller {
     } else if (index == 1) {
       sharedWithMe();
     }
+  }
+
+  void onTap(int index) async {
+    String onePhotoMemoUsername;
+    String onePhotoMemoProfileURL;
+    List<dynamic> onePhotoMemoComments;
+    List<dynamic> onePhotoMemoLikes;
+    bool onePhotoMemoLiked = false;
+    try {
+      onePhotoMemoLikes = await FirebaseController.getLikes(
+          photoFilename: state
+              .notifications[index][Constant.ARG_ONE_PHOTOMEMO].photoFilename);
+
+      if (await FirebaseController.likeExists(
+          photoFilename: state
+              .notifications[index][Constant.ARG_ONE_PHOTOMEMO].photoFilename,
+          email: state.user.email)) {
+        onePhotoMemoLiked = true;
+      }
+
+      onePhotoMemoUsername = await FirebaseController.getUsername(
+          email:
+              state.notifications[index][Constant.ARG_ONE_PHOTOMEMO].createdBy);
+      onePhotoMemoProfileURL = await FirebaseController.getProfilePicture(
+          email:
+              state.notifications[index][Constant.ARG_ONE_PHOTOMEMO].createdBy);
+      onePhotoMemoComments = await FirebaseController.getComments(
+          photoFilename: state
+              .notifications[index][Constant.ARG_ONE_PHOTOMEMO].photoFilename);
+    } catch (e) {
+      print('============================$e');
+    }
+    await Navigator.pushNamed(state.context, PhotoViewScreen.routeName,
+        arguments: {
+          Constant.ARG_USER: state.user,
+          Constant.ARG_USER_INFO: state.userInfo,
+          Constant.ARG_ONE_PHOTOMEMO: state.notifications[index]
+              [Constant.ARG_ONE_PHOTOMEMO],
+          Constant.ARG_ONE_PHOTOMEMO_USERNAME: onePhotoMemoUsername,
+          Constant.ARG_ONE_PHOTOMEMO_PROFILE_PICTURE_URL:
+              onePhotoMemoProfileURL,
+          Constant.ARG_ONE_PHOTOMEMO_COMMENTS: onePhotoMemoComments,
+          Constant.ARG_ONE_PHOTOMEMO_LIKES: onePhotoMemoLikes,
+          Constant.ARG_ONE_PHOTOMEMO_LIKED: onePhotoMemoLiked,
+        });
   }
 }

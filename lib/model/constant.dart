@@ -24,6 +24,11 @@ class Constant {
   static const ARG_COMMENT = 'comment';
   static const ARG_PHOTOURL = 'photoURL';
   static const ARG_USER_INFO = 'userInfo';
+  static const ARG_NOTIFICATION_OWNER = 'notification_owner';
+  static const ARG_NOTIFICATION_TYPE = 'notification_type';
+  static const ARG_NOTIFICATIONS = 'notifications';
+  static const ARG_READ = 'read';
+  static const ARG_UNREAD_NOTIFICATION = 'unreadNotification';
 
   static const MIN_ML_CONFIDENCE = 0.7;
 
@@ -36,8 +41,13 @@ class Constant {
   static const PROFILE_PICTURES_FOLDER = 'profile_pictures';
   static const ARG_PROFILE_PICTURE_FILE_NAME = 'profile_picture_filename';
   static const ARG_PROFILE_PICTURE_URL = 'profile_picture_url';
-
+  static const ARG_MESSAGE = 'message';
   static const COMMENTS_COLLECTION = 'comments';
 
   static const LIKES_COLLECTION = 'likes';
+
+  static const NOTIFICATIONS_COLLECTION = 'notifications';
+
+  static const NOTIFICATION_TYPE_COMMENT = 0;
+  static const NOTIFICATION_TYPE_LIKE = 1;
 }

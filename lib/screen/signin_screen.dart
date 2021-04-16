@@ -211,10 +211,18 @@ class _Controller {
       List<PhotoMemo> photoMemoList =
           await FirebaseController.getPhotoMemoList(email: user.email);
       MyDialog.circularProgressStop(state.context);
+
+      bool unreadNotification = false;
+      if (await FirebaseController.unreadNotificationExists(
+          owner: user.email)) {
+        unreadNotification = true;
+      }
+      print(unreadNotification);
       Navigator.pushNamed(state.context, UserHomeScreen.routeName, arguments: {
         Constant.ARG_USER: user,
         Constant.ARG_PHOTOMEMOLIST: photoMemoList,
         Constant.ARG_USER_INFO: userInfo,
+        Constant.ARG_UNREAD_NOTIFICATION: unreadNotification,
       });
     } catch (e) {
       MyDialog.circularProgressStop(state.context);

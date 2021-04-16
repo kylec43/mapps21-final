@@ -68,6 +68,15 @@ class FirebaseController {
     return result;
   }
 
+  static Future<PhotoMemo> getPhotoMemo({@required String filename}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.PHOTOMEMO_COLLECTION)
+        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: filename)
+        .get();
+    var doc = querySnapshot.docs[0];
+    return PhotoMemo.deserialize(doc.data(), doc.id);
+  }
+
   static Future<List<dynamic>> getImageLabels(
       {@required File photoFile}) async {
     final FirebaseVisionImage visionImage =
@@ -398,6 +407,36 @@ class FirebaseController {
       Constant.ARG_TIMESTAMP: DateTime.now(),
       Constant.ARG_COMMENT: comment,
     });
+
+    await uploadCommentNotification(
+        photoFilename: photoFilename, userEmail: userEmail, comment: comment);
+  }
+
+  static Future<void> uploadCommentNotification(
+      {@required String photoFilename,
+      @required String userEmail,
+      @required String comment}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.PHOTOMEMO_COLLECTION)
+        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+        .get();
+
+    var doc = querySnapshot.docs[0];
+    String owner = doc[PhotoMemo.CREATED_BY];
+
+    if (owner != userEmail) {
+      await FirebaseFirestore.instance
+          .collection(Constant.NOTIFICATIONS_COLLECTION)
+          .add({
+        Constant.ARG_NOTIFICATION_OWNER: owner,
+        Constant.ARG_NOTIFICATION_TYPE: Constant.NOTIFICATION_TYPE_COMMENT,
+        Constant.ARG_EMAIL: userEmail,
+        PhotoMemo.PHOTO_FILENAME: photoFilename,
+        Constant.ARG_TIMESTAMP: DateTime.now(),
+        Constant.ARG_COMMENT: comment,
+        Constant.ARG_READ: 'false',
+      });
+    }
   }
 
   static Future<List<dynamic>> getComments({@required photoFilename}) async {
@@ -461,10 +500,31 @@ class FirebaseController {
         .doc(docId)
         .delete();
 
+    await deleteNotification(
+        photoFilename: photoFilename, notificationTimestamp: commentTimestamp);
+
     List<dynamic> updatedComments =
         await getComments(photoFilename: photoFilename);
 
     return updatedComments;
+  }
+
+  static Future<void> deleteNotification(
+      {@required photoFilename, @required notificationTimestamp}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.NOTIFICATIONS_COLLECTION)
+        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+        .where(Constant.ARG_TIMESTAMP, isEqualTo: notificationTimestamp)
+        .get();
+
+    if (querySnapshot.docs.length == 0) return;
+    var doc = querySnapshot.docs[0];
+    var docId = doc.id;
+
+    await FirebaseFirestore.instance
+        .collection(Constant.NOTIFICATIONS_COLLECTION)
+        .doc(docId)
+        .delete();
   }
 
   static Future<void> uploadLike(
@@ -474,6 +534,33 @@ class FirebaseController {
       PhotoMemo.PHOTO_FILENAME: photoFilename,
       Constant.ARG_TIMESTAMP: DateTime.now(),
     });
+
+    await uploadLikeNotification(
+        photoFilename: photoFilename, userEmail: userEmail);
+  }
+
+  static Future<void> uploadLikeNotification(
+      {@required String photoFilename, @required String userEmail}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.PHOTOMEMO_COLLECTION)
+        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+        .get();
+
+    var doc = querySnapshot.docs[0];
+    String owner = doc[PhotoMemo.CREATED_BY];
+
+    if (owner != userEmail) {
+      await FirebaseFirestore.instance
+          .collection(Constant.NOTIFICATIONS_COLLECTION)
+          .add({
+        Constant.ARG_NOTIFICATION_OWNER: owner,
+        Constant.ARG_NOTIFICATION_TYPE: Constant.NOTIFICATION_TYPE_LIKE,
+        Constant.ARG_EMAIL: userEmail,
+        PhotoMemo.PHOTO_FILENAME: photoFilename,
+        Constant.ARG_TIMESTAMP: DateTime.now(),
+        Constant.ARG_READ: 'false',
+      });
+    }
   }
 
   static Future<List<dynamic>> getLikes({@required photoFilename}) async {
@@ -495,6 +582,59 @@ class FirebaseController {
     return likes;
   }
 
+  static Future<List<Map<String, dynamic>>> getNotifications(
+      {@required owner}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.NOTIFICATIONS_COLLECTION)
+        .where(Constant.ARG_NOTIFICATION_OWNER, isEqualTo: owner)
+        .orderBy(Constant.ARG_TIMESTAMP, descending: true)
+        .get();
+
+    var notifications = List<Map<String, dynamic>>();
+    var likeNotificationPhotos = Set();
+    var docs = querySnapshot.docs;
+    for (int i = 0; i < docs.length; i++) {
+      var doc = docs[i];
+      if (doc[Constant.ARG_NOTIFICATION_TYPE] ==
+          Constant.NOTIFICATION_TYPE_COMMENT) {
+        var photoMemo =
+            await getPhotoMemo(filename: doc[PhotoMemo.PHOTO_FILENAME]);
+        var username = await getUsername(email: photoMemo.createdBy);
+        var message = username + " commented: " + doc[Constant.ARG_COMMENT];
+        notifications.add({
+          Constant.ARG_ONE_PHOTOMEMO: photoMemo,
+          Constant.ARG_MESSAGE: message
+        });
+      } else if (doc[Constant.ARG_NOTIFICATION_TYPE] ==
+          Constant.NOTIFICATION_TYPE_LIKE) {
+        var filename = doc[PhotoMemo.PHOTO_FILENAME];
+        if (!likeNotificationPhotos.contains(filename)) {
+          var photoMemo =
+              await getPhotoMemo(filename: doc[PhotoMemo.PHOTO_FILENAME]);
+          var likes = await getLikes(photoFilename: filename);
+          var likeCount = likes.length;
+          var message = likeCount == 1
+              ? '1 person likes your photo'
+              : likeCount.toString() + " people like your photo";
+          notifications.add({
+            Constant.ARG_ONE_PHOTOMEMO: photoMemo,
+            Constant.ARG_MESSAGE: message
+          });
+          likeNotificationPhotos.add(filename);
+        }
+      }
+      if (doc[Constant.ARG_READ] == 'false') {
+        var id = doc.id;
+        await FirebaseFirestore.instance
+            .collection(Constant.NOTIFICATIONS_COLLECTION)
+            .doc(id)
+            .update({Constant.ARG_READ: 'true'});
+      }
+    }
+
+    return notifications;
+  }
+
   static Future<List<dynamic>> deleteLike(
       {@required photoFilename, @required email}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
@@ -504,12 +644,16 @@ class FirebaseController {
         .get();
 
     var doc = querySnapshot.docs[0];
+    var timestamp = doc[Constant.ARG_TIMESTAMP];
     var docId = doc.id;
 
     await FirebaseFirestore.instance
         .collection(Constant.LIKES_COLLECTION)
         .doc(docId)
         .delete();
+
+    await deleteNotification(
+        photoFilename: photoFilename, notificationTimestamp: timestamp);
 
     List<dynamic> updatedLikes = await getLikes(photoFilename: photoFilename);
 
@@ -529,5 +673,15 @@ class FirebaseController {
     } else {
       return false;
     }
+  }
+
+  static Future<bool> unreadNotificationExists({@required owner}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.NOTIFICATIONS_COLLECTION)
+        .where(Constant.ARG_NOTIFICATION_OWNER, isEqualTo: owner)
+        .where(Constant.ARG_READ, isEqualTo: 'false')
+        .get();
+
+    return querySnapshot.docs.length > 0;
   }
 }

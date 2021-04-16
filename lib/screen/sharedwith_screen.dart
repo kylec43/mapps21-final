@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_glow/flutter_glow.dart';
 import 'package:lesson3/controller/firebasecontroller.dart';
 import 'package:lesson3/model/constant.dart';
 import 'package:lesson3/model/photomemo.dart';
@@ -23,6 +24,7 @@ class _SharedWithState extends State<SharedWithScreen> {
   User user;
   var userInfo;
   List<PhotoMemo> photoMemoList;
+  var unreadNotification;
 
   @override
   void initState() {
@@ -37,6 +39,7 @@ class _SharedWithState extends State<SharedWithScreen> {
     Map args = ModalRoute.of(context).settings.arguments;
     user ??= args[Constant.ARG_USER];
     userInfo ??= args[Constant.ARG_USER_INFO];
+    unreadNotification ??= args[Constant.ARG_UNREAD_NOTIFICATION];
 
     photoMemoList ??= args[Constant.ARG_PHOTOMEMOLIST];
     return WillPopScope(
@@ -84,7 +87,7 @@ class _SharedWithState extends State<SharedWithScreen> {
                 ),
               ),
         bottomNavigationBar: BottomNavigationBar(
-          items: const <BottomNavigationBarItem>[
+          items: <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.home),
               label: 'Home',
@@ -93,10 +96,18 @@ class _SharedWithState extends State<SharedWithScreen> {
               icon: Icon(Icons.people),
               label: 'Shared With Me',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.notification_important),
-              label: 'Notifications',
-            ),
+            unreadNotification == true
+                ? BottomNavigationBarItem(
+                    icon: GlowIcon(Icons.notification_important,
+                        size: 40,
+                        color: Colors.green[500],
+                        glowColor: Colors.green[200]),
+                    label: 'Notifications',
+                  )
+                : BottomNavigationBarItem(
+                    icon: Icon(Icons.notification_important),
+                    label: 'Notifications',
+                  ),
           ],
           currentIndex: 1,
           selectedItemColor: Colors.amber[800],
@@ -148,16 +159,28 @@ class _Controller {
           Constant.ARG_ONE_PHOTOMEMO_LIKES: onePhotoMemoLikes,
           Constant.ARG_ONE_PHOTOMEMO_LIKED: onePhotoMemoLiked,
         });
+
+    var unreadNotification = await FirebaseController.unreadNotificationExists(
+        owner: state.user.email);
+    state.render(() async => state.unreadNotification = unreadNotification);
   }
 
   void homeScreen() async {
     try {
       List<PhotoMemo> photoMemoList =
           await FirebaseController.getPhotoMemoList(email: state.user.email);
+
+      bool unreadNotification = false;
+      if (await FirebaseController.unreadNotificationExists(
+          owner: state.user.email)) {
+        unreadNotification = true;
+      }
+
       Navigator.pushNamed(state.context, UserHomeScreen.routeName, arguments: {
         Constant.ARG_USER: state.user,
         Constant.ARG_PHOTOMEMOLIST: photoMemoList,
         Constant.ARG_USER_INFO: state.userInfo,
+        Constant.ARG_UNREAD_NOTIFICATION: unreadNotification,
       });
     } catch (e) {
       MyDialog.info(
@@ -174,11 +197,15 @@ class _Controller {
           await FirebaseController.getPhotoMemoSharedWithMe(
         email: state.user.email,
       );
+
+      List<Map<String, dynamic>> notifications =
+          await FirebaseController.getNotifications(owner: state.user.email);
       await Navigator.pushNamed(state.context, NotificationScreen.routeName,
           arguments: {
             Constant.ARG_USER: state.user,
             Constant.ARG_USER_INFO: state.userInfo,
             Constant.ARG_PHOTOMEMOLIST: photoMemoList,
+            Constant.ARG_NOTIFICATIONS: notifications,
           });
       Navigator.pop(state.context);
     } catch (e) {
