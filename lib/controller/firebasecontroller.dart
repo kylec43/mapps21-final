@@ -534,18 +534,23 @@ class FirebaseController {
 
   static Future<void> uploadLike(
       {@required String photoFilename, @required String userEmail}) async {
+    var timestamp = DateTime.now();
     await FirebaseFirestore.instance.collection(Constant.LIKES_COLLECTION).add({
       Constant.ARG_EMAIL: userEmail,
       PhotoMemo.PHOTO_FILENAME: photoFilename,
-      Constant.ARG_TIMESTAMP: DateTime.now(),
+      Constant.ARG_TIMESTAMP: timestamp,
     });
 
     await uploadLikeNotification(
-        photoFilename: photoFilename, userEmail: userEmail);
+        photoFilename: photoFilename,
+        userEmail: userEmail,
+        timestamp: timestamp);
   }
 
   static Future<void> uploadLikeNotification(
-      {@required String photoFilename, @required String userEmail}) async {
+      {@required String photoFilename,
+      @required String userEmail,
+      @required timestamp}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.PHOTOMEMO_COLLECTION)
         .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
@@ -562,7 +567,7 @@ class FirebaseController {
         Constant.ARG_NOTIFICATION_TYPE: Constant.NOTIFICATION_TYPE_LIKE,
         Constant.ARG_EMAIL: userEmail,
         PhotoMemo.PHOTO_FILENAME: photoFilename,
-        Constant.ARG_TIMESTAMP: DateTime.now(),
+        Constant.ARG_TIMESTAMP: timestamp,
         Constant.ARG_READ: 'false',
       });
     }
