@@ -46,28 +46,31 @@ class _NotificationScreenState extends State<NotificationScreen> {
           automaticallyImplyLeading: false,
           title: Text('Notifications'),
         ),
-        body: Column(children: [
-          for (int i = 0; i < notifications.length; i++)
-            GestureDetector(
-              onTap: () => con.onTap(i),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: MediaQuery.of(context).size.width * 0.12,
-                    height: MediaQuery.of(context).size.height * 0.12,
-                    child: Image.network(
-                      notifications[i][Constant.ARG_ONE_PHOTOMEMO].photoURL,
-                      fit: BoxFit.fill,
+        body: SingleChildScrollView(
+          child: Column(children: [
+            for (int i = 0; i < notifications.length; i++)
+              GestureDetector(
+                onTap: () => con.onTap(i),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: MediaQuery.of(context).size.width * 0.12,
+                      height: MediaQuery.of(context).size.height * 0.12,
+                      child: Image.network(
+                        notifications[i][Constant.ARG_ONE_PHOTOMEMO].photoURL,
+                        fit: BoxFit.fill,
+                      ),
                     ),
-                  ),
-                  Flexible(
-                      child: Text("  " + notifications[i][Constant.ARG_MESSAGE],
-                          style: TextStyle(fontSize: 16))),
-                ],
+                    Flexible(
+                        child: Text(
+                            "  " + notifications[i][Constant.ARG_MESSAGE],
+                            style: TextStyle(fontSize: 16))),
+                  ],
+                ),
               ),
-            ),
-        ]),
+          ]),
+        ),
         bottomNavigationBar: BottomNavigationBar(
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
