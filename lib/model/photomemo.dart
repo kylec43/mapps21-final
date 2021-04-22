@@ -1,6 +1,7 @@
 class PhotoMemo {
   String docId; //Firestore auto generated id
   String createdBy;
+  String createdByUid;
   String title;
   String memo;
   String photoFilename; // stored at Storage
@@ -14,6 +15,7 @@ class PhotoMemo {
   static const TITLE = 'title';
   static const MEMO = 'memo';
   static const CREATED_BY = 'createdBy';
+  static const CREATED_BY_UID = 'createdByUid';
   static const PHOTO_URL = 'photoURL';
   static const PHOTO_FILENAME = 'photoFilename';
   static const TIMESTAMP = 'timestamp';
@@ -28,6 +30,7 @@ class PhotoMemo {
   PhotoMemo(
       {this.docId,
       this.createdBy,
+      this.createdByUid,
       this.memo,
       this.photoFilename,
       this.photoURL,
@@ -44,6 +47,7 @@ class PhotoMemo {
   void assign(PhotoMemo p) {
     this.docId = p.docId;
     this.createdBy = p.createdBy;
+    this.createdByUid = p.createdByUid;
     this.memo = p.memo;
     this.photoFilename = p.photoFilename;
     this.photoURL = p.photoURL;
@@ -59,6 +63,7 @@ class PhotoMemo {
   PhotoMemo.clone(PhotoMemo p) {
     this.docId = p.docId;
     this.createdBy = p.createdBy;
+    this.createdByUid = p.createdByUid;
     this.memo = p.memo;
     this.photoFilename = p.photoFilename;
     this.photoURL = p.photoURL;
@@ -76,6 +81,7 @@ class PhotoMemo {
     return <String, dynamic>{
       TITLE: this.title,
       CREATED_BY: this.createdBy,
+      CREATED_BY_UID: this.createdByUid,
       MEMO: this.memo,
       PHOTO_FILENAME: this.photoFilename,
       PHOTO_URL: this.photoURL,
@@ -90,6 +96,7 @@ class PhotoMemo {
     return PhotoMemo(
       docId: docId,
       createdBy: doc[CREATED_BY],
+      createdByUid: doc[CREATED_BY_UID],
       title: doc[TITLE],
       memo: doc[MEMO],
       photoFilename: doc[PHOTO_FILENAME],

@@ -181,12 +181,16 @@ class FirebaseController {
     }
 
     await addUserAccount(
-        email: user.email, username: username, profilePictureInfo: photoInfo);
+        email: user.email,
+        username: username,
+        uid: user.uid,
+        profilePictureInfo: photoInfo);
   }
 
   static Future<String> addUserAccount(
       {@required String email,
       @required String username,
+      @required String uid,
       @required Map<String, String> profilePictureInfo}) async {
     String defaultProfilePictureFilename = '';
     String defaultProfilePictureURL;
@@ -202,6 +206,7 @@ class FirebaseController {
         .add({
       Constant.ARG_EMAIL: email,
       Constant.ARG_USERNAME: username,
+      Constant.ARG_UID: uid,
       Constant.ARG_PROFILE_PICTURE_FILE_NAME: profilePictureInfo != null
           ? profilePictureInfo[Constant.ARG_FILENAME]
           : defaultProfilePictureFilename,
@@ -398,7 +403,16 @@ class FirebaseController {
   static Future<void> uploadComment(
       {@required String photoFilename,
       @required String userEmail,
+      @required String userUid,
       @required String comment}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.USER_ACCOUNT_COLLECTION)
+        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+        .get();
+
+    var doc = querySnapshot.docs[0];
+    String opUid = doc[PhotoMemo.CREATED_BY_UID];
+
     var timestamp = DateTime.now();
     await FirebaseFirestore.instance
         .collection(Constant.COMMENTS_COLLECTION)
@@ -407,18 +421,25 @@ class FirebaseController {
       PhotoMemo.PHOTO_FILENAME: photoFilename,
       Constant.ARG_TIMESTAMP: timestamp,
       Constant.ARG_COMMENT: comment,
+      Constant.ARG_OP_UID: opUid,
+      Constant.ARG_OWNER_UID: userUid,
     });
 
     await uploadCommentNotification(
-        photoFilename: photoFilename,
-        userEmail: userEmail,
-        comment: comment,
-        timestamp: timestamp);
+      photoFilename: photoFilename,
+      userEmail: userEmail,
+      comment: comment,
+      timestamp: timestamp,
+      ownerUid: opUid,
+      uid: userUid,
+    );
   }
 
   static Future<void> uploadCommentNotification(
       {@required String photoFilename,
       @required String userEmail,
+      @required String ownerUid,
+      @required String uid,
       @required String comment,
       @required timestamp}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
@@ -440,6 +461,8 @@ class FirebaseController {
         Constant.ARG_TIMESTAMP: timestamp,
         Constant.ARG_COMMENT: comment,
         Constant.ARG_READ: 'false',
+        Constant.ARG_OWNER_UID: ownerUid,
+        Constant.ARG_UID: uid,
       });
     }
   }
@@ -533,23 +556,40 @@ class FirebaseController {
   }
 
   static Future<void> uploadLike(
-      {@required String photoFilename, @required String userEmail}) async {
+      {@required String photoFilename,
+      @required String userEmail,
+      @required String userUid}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.USER_ACCOUNT_COLLECTION)
+        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+        .get();
+
+    var doc = querySnapshot.docs[0];
+    String opUid = doc[PhotoMemo.CREATED_BY_UID];
+
     var timestamp = DateTime.now();
     await FirebaseFirestore.instance.collection(Constant.LIKES_COLLECTION).add({
       Constant.ARG_EMAIL: userEmail,
+      Constant.ARG_OWNER_UID: userUid,
+      Constant.ARG_OP_UID: opUid,
       PhotoMemo.PHOTO_FILENAME: photoFilename,
       Constant.ARG_TIMESTAMP: timestamp,
     });
 
     await uploadLikeNotification(
-        photoFilename: photoFilename,
-        userEmail: userEmail,
-        timestamp: timestamp);
+      photoFilename: photoFilename,
+      userEmail: userEmail,
+      timestamp: timestamp,
+      ownerUid: opUid,
+      uid: userUid,
+    );
   }
 
   static Future<void> uploadLikeNotification(
       {@required String photoFilename,
       @required String userEmail,
+      @required String uid,
+      @required String ownerUid,
       @required timestamp}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.PHOTOMEMO_COLLECTION)

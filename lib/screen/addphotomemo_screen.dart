@@ -218,6 +218,7 @@ class _Controller {
       tempMemo.photoURL = photoInfo[Constant.ARG_DOWNLOADURL];
       tempMemo.timestamp = DateTime.now();
       tempMemo.createdBy = state.user.email;
+      tempMemo.createdByUid = state.user.uid;
       tempMemo.imageLabels = imageLabels;
       if (tempMemo.visibility == null)
         tempMemo.visibility = PhotoMemo.VISIBILITY_PUBLIC;

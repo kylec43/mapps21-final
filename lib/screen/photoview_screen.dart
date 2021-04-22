@@ -285,6 +285,7 @@ class _Controller {
       await FirebaseController.uploadComment(
           photoFilename: state.onePhotoMemo.photoFilename,
           userEmail: state.user.email,
+          userUid: state.user.uid,
           comment: comment);
 
       List<dynamic> newCommentList = await FirebaseController.getComments(
@@ -357,6 +358,7 @@ class _Controller {
         await FirebaseController.uploadLike(
           photoFilename: state.onePhotoMemo.photoFilename,
           userEmail: state.user.email,
+          userUid: state.user.uid,
         );
 
         List<dynamic> newLikeList = await FirebaseController.getLikes(

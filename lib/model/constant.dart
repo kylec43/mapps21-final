@@ -29,6 +29,9 @@ class Constant {
   static const ARG_NOTIFICATIONS = 'notifications';
   static const ARG_READ = 'read';
   static const ARG_UNREAD_NOTIFICATION = 'unreadNotification';
+  static const ARG_OP_UID = 'op_uid';
+  static const ARG_OWNER_UID = 'owner_uid';
+  static const ARG_UID = 'uid';
 
   static const MIN_ML_CONFIDENCE = 0.7;
 
