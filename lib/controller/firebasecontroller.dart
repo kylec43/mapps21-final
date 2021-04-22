@@ -128,6 +128,35 @@ class FirebaseController {
         .delete();
 
     await FirebaseStorage.instance.ref().child(p.photoFilename).delete();
+
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.LIKES_COLLECTION)
+        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: p.photoFilename)
+        .get();
+
+    List<String> docEmails = [];
+    querySnapshot.docs.forEach((doc) {
+      docEmails.add(doc[Constant.ARG_EMAIL]);
+    });
+
+    for (int i = 0; i < docEmails.length; i++) {
+      await deleteLike(photoFilename: p.photoFilename, email: docEmails[i]);
+    }
+
+    querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.COMMENTS_COLLECTION)
+        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: p.photoFilename)
+        .get();
+
+    List<String> docTimestamps = [];
+    querySnapshot.docs.forEach((doc) {
+      docTimestamps.add(doc[Constant.ARG_TIMESTAMP]);
+    });
+
+    for (int i = 0; i < docEmails.length; i++) {
+      await deleteComment(
+          photoFilename: p.photoFilename, commentTimestamp: docTimestamps[i]);
+    }
   }
 
   static Future<List<PhotoMemo>> searchImage(
