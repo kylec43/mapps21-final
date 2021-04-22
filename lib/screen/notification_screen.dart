@@ -108,7 +108,7 @@ class _Controller {
 
       bool unreadNotification = false;
       if (await FirebaseController.unreadNotificationExists(
-          owner: state.user.email)) {
+          owner_uid: state.user.uid)) {
         unreadNotification = true;
       }
 
@@ -132,11 +132,11 @@ class _Controller {
   void homeScreen() async {
     try {
       List<PhotoMemo> photoMemoList =
-          await FirebaseController.getPhotoMemoList(email: state.user.email);
+          await FirebaseController.getPhotoMemoList(uid: state.user.uid);
 
       bool unreadNotification = false;
       if (await FirebaseController.unreadNotificationExists(
-          owner: state.user.email)) {
+          owner_uid: state.user.uid)) {
         unreadNotification = true;
       }
 

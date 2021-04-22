@@ -54,10 +54,10 @@ class FirebaseController {
   }
 
   static Future<List<PhotoMemo>> getPhotoMemoList(
-      {@required String email}) async {
+      {@required String uid}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.PHOTOMEMO_COLLECTION)
-        .where(PhotoMemo.CREATED_BY, isEqualTo: email)
+        .where(PhotoMemo.CREATED_BY_UID, isEqualTo: uid)
         .orderBy(PhotoMemo.TIMESTAMP, descending: true)
         .get();
     var result = <PhotoMemo>[];
@@ -68,9 +68,11 @@ class FirebaseController {
     return result;
   }
 
-  static Future<PhotoMemo> getPhotoMemo({@required String filename}) async {
+  static Future<PhotoMemo> getPhotoMemo(
+      {@required String filename, @required String requesterUid}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.PHOTOMEMO_COLLECTION)
+        .where(PhotoMemo.CREATED_BY_UID, isEqualTo: requesterUid)
         .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: filename)
         .get();
     var doc = querySnapshot.docs[0];
@@ -107,21 +109,22 @@ class FirebaseController {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.PHOTOMEMO_COLLECTION)
         .where(PhotoMemo.SHARED_WITH, arrayContains: email)
+        .where(PhotoMemo.VISIBILITY, whereIn: [
+          PhotoMemo.VISIBILITY_PUBLIC,
+          PhotoMemo.VISIBILITY_SHARED_ONLY
+        ])
         .orderBy(PhotoMemo.TIMESTAMP, descending: true)
         .get();
 
     var result = <PhotoMemo>[];
     querySnapshot.docs.forEach((doc) {
-      if (doc[PhotoMemo.VISIBILITY] == PhotoMemo.VISIBILITY_PUBLIC ||
-          doc[PhotoMemo.VISIBILITY] == PhotoMemo.VISIBILITY_SHARED_ONLY) {
-        result.add(PhotoMemo.deserialize(doc.data(), doc.id));
-      }
+      result.add(PhotoMemo.deserialize(doc.data(), doc.id));
     });
 
     return result;
   }
 
-  static Future<void> deletePhotoMemo(PhotoMemo p) async {
+  static Future<void> deletePhotoMemo(PhotoMemo p, String deleterUid) async {
     await FirebaseFirestore.instance
         .collection(Constant.PHOTOMEMO_COLLECTION)
         .doc(p.docId)
@@ -131,6 +134,7 @@ class FirebaseController {
 
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.LIKES_COLLECTION)
+        .where(Constant.ARG_OP_UID, isEqualTo: deleterUid)
         .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: p.photoFilename)
         .get();
 
@@ -140,22 +144,46 @@ class FirebaseController {
     });
 
     for (int i = 0; i < docEmails.length; i++) {
-      await deleteLike(photoFilename: p.photoFilename, email: docEmails[i]);
+      await deleteLike(
+          deleterUid: deleterUid,
+          photoFilename: p.photoFilename,
+          email: docEmails[i]);
     }
 
     querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.COMMENTS_COLLECTION)
+        .where(Constant.ARG_OP_UID, isEqualTo: deleterUid)
         .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: p.photoFilename)
         .get();
 
-    List<String> docTimestamps = [];
+    List<Timestamp> docTimestamps = [];
     querySnapshot.docs.forEach((doc) {
       docTimestamps.add(doc[Constant.ARG_TIMESTAMP]);
     });
 
-    for (int i = 0; i < docEmails.length; i++) {
+    for (int i = 0; i < docTimestamps.length; i++) {
       await deleteComment(
-          photoFilename: p.photoFilename, commentTimestamp: docTimestamps[i]);
+          deleterUid: deleterUid,
+          photoFilename: p.photoFilename,
+          commentTimestamp: docTimestamps[i]);
+    }
+
+    querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.NOTIFICATIONS_COLLECTION)
+        .where(Constant.ARG_OWNER_UID, isEqualTo: deleterUid)
+        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: p.photoFilename)
+        .get();
+
+    docTimestamps = [];
+    querySnapshot.docs.forEach((doc) {
+      docTimestamps.add(doc[Constant.ARG_TIMESTAMP]);
+    });
+
+    for (int i = 0; i < docTimestamps.length; i++) {
+      await deleteNotification(
+          deleterUid: deleterUid,
+          photoFilename: p.photoFilename,
+          notificationTimestamp: docTimestamps[i]);
     }
   }
 
@@ -265,7 +293,7 @@ class FirebaseController {
 
     querySnapShot = await FirebaseFirestore.instance
         .collection(Constant.USER_ACCOUNT_COLLECTION)
-        .where(Constant.ARG_EMAIL, isEqualTo: user.email)
+        .where(Constant.ARG_UID, isEqualTo: user.uid)
         .get();
 
     String docId = '';
@@ -280,9 +308,19 @@ class FirebaseController {
   }
 
   static Future<void> changeEmail({@required user, @required newEmail}) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.USER_ACCOUNT_COLLECTION)
+        .where(Constant.ARG_EMAIL, isEqualTo: newEmail)
+        .get();
+
     String oldEmail = user.email;
+
+    if (querySnapshot.size == 0) {
+      await updateEmailInFirestore(
+          oldEmail: oldEmail, newEmail: newEmail, uid: user.uid);
+    }
+
     await user.updateEmail(newEmail);
-    await updateEmailInFirestore(oldEmail: oldEmail, newEmail: newEmail);
   }
 
   static Future<void> changePassword(
@@ -300,7 +338,7 @@ class FirebaseController {
       @required Function listener}) async {
     QuerySnapshot querySnapShot = await FirebaseFirestore.instance
         .collection(Constant.USER_ACCOUNT_COLLECTION)
-        .where(Constant.ARG_EMAIL, isEqualTo: user.email)
+        .where(Constant.ARG_UID, isEqualTo: user.uid)
         .get();
 
     String filename =
@@ -325,11 +363,11 @@ class FirebaseController {
   }
 
   static Future<void> updateEmailInFirestore(
-      {@required oldEmail, @required newEmail}) async {
+      {@required oldEmail, @required newEmail, @required uid}) async {
     //Update profile picture owner to new email
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.USER_ACCOUNT_COLLECTION)
-        .where(Constant.ARG_EMAIL, isEqualTo: oldEmail)
+        .where(Constant.ARG_UID, isEqualTo: uid)
         .get();
 
     String docId;
@@ -342,52 +380,32 @@ class FirebaseController {
         .doc(docId)
         .update({Constant.ARG_EMAIL: newEmail});
 
-    //update shared with email to new email
+    var docIds = <String>[];
+
+    //Update comments email to new email
     querySnapshot = await FirebaseFirestore.instance
-        .collection(Constant.PHOTOMEMO_COLLECTION)
-        .where(PhotoMemo.SHARED_WITH, arrayContains: oldEmail)
+        .collection(Constant.COMMENTS_COLLECTION)
+        .where(Constant.ARG_OWNER_UID, isEqualTo: uid)
         .get();
 
-    var docIds = <String>[];
-    var newSharedWith = <dynamic>[];
+    docIds = <String>[];
     if (querySnapshot.size != 0) {
       querySnapshot.docs.forEach((doc) {
-        List<dynamic> sharedEmails = doc[PhotoMemo.SHARED_WITH];
-        var index = sharedEmails.indexOf(oldEmail);
-
-        sharedEmails[index] = newEmail;
-        newSharedWith.add(sharedEmails);
         docIds.add(doc.id);
       });
 
       for (int i = 0; i < docIds.length; i++) {
         await FirebaseFirestore.instance
-            .collection(Constant.PHOTOMEMO_COLLECTION)
+            .collection(Constant.COMMENTS_COLLECTION)
             .doc(docIds[i])
-            .update({PhotoMemo.SHARED_WITH: newSharedWith[i]});
+            .update({Constant.ARG_EMAIL: newEmail});
       }
-    }
-
-    //Update comments email to new email
-    querySnapshot = await FirebaseFirestore.instance
-        .collection(Constant.COMMENTS_COLLECTION)
-        .where(Constant.ARG_EMAIL, isEqualTo: oldEmail)
-        .get();
-
-    if (querySnapshot.size != 0) {
-      querySnapshot.docs.forEach((doc) {
-        docId = doc.id;
-      });
-      await FirebaseFirestore.instance
-          .collection(Constant.COMMENTS_COLLECTION)
-          .doc(docId)
-          .update({Constant.ARG_EMAIL: newEmail});
     }
 
     //update photomemo email to new email
     querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.PHOTOMEMO_COLLECTION)
-        .where(PhotoMemo.CREATED_BY, isEqualTo: oldEmail)
+        .where(PhotoMemo.CREATED_BY_UID, isEqualTo: uid)
         .get();
 
     docIds = <String>[];
@@ -402,6 +420,66 @@ class FirebaseController {
             .doc(docIds[i])
             .update({PhotoMemo.CREATED_BY: newEmail});
       }
+    }
+
+    //update likes email
+    querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.LIKES_COLLECTION)
+        .where(Constant.ARG_OWNER_UID, isEqualTo: uid)
+        .get();
+
+    docIds = <String>[];
+    if (querySnapshot.size != 0) {
+      querySnapshot.docs.forEach((doc) {
+        docIds.add(doc.id);
+      });
+
+      for (int i = 0; i < docIds.length; i++) {
+        await FirebaseFirestore.instance
+            .collection(Constant.LIKES_COLLECTION)
+            .doc(docIds[i])
+            .update({Constant.ARG_EMAIL: newEmail});
+      }
+    }
+
+    //update notifications
+    querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.NOTIFICATIONS_COLLECTION)
+        .where(Constant.ARG_OWNER_UID, isEqualTo: uid)
+        .orderBy(Constant.ARG_TIMESTAMP, descending: true)
+        .get();
+
+    docIds = <String>[];
+    if (querySnapshot.size != 0) {
+      querySnapshot.docs.forEach((doc) {
+        docIds.add(doc.id);
+      });
+    }
+
+    for (int i = 0; i < docIds.length; i++) {
+      await FirebaseFirestore.instance
+          .collection(Constant.NOTIFICATIONS_COLLECTION)
+          .doc(docIds[i])
+          .update({Constant.ARG_NOTIFICATION_OWNER: newEmail});
+    }
+
+    querySnapshot = await FirebaseFirestore.instance
+        .collection(Constant.NOTIFICATIONS_COLLECTION)
+        .where(Constant.ARG_UID, isEqualTo: uid)
+        .orderBy(Constant.ARG_TIMESTAMP, descending: true)
+        .get();
+
+    docIds = <String>[];
+    if (querySnapshot.size != 0) {
+      querySnapshot.docs.forEach((doc) {
+        docIds.add(doc.id);
+      });
+    }
+    for (int i = 0; i < docIds.length; i++) {
+      await FirebaseFirestore.instance
+          .collection(Constant.NOTIFICATIONS_COLLECTION)
+          .doc(docIds[i])
+          .update({Constant.ARG_EMAIL: newEmail});
     }
   }
 
@@ -433,14 +511,15 @@ class FirebaseController {
       {@required String photoFilename,
       @required String userEmail,
       @required String userUid,
+      @required opUsername,
       @required String comment}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.USER_ACCOUNT_COLLECTION)
-        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+        .where(Constant.ARG_USERNAME, isEqualTo: opUsername)
         .get();
 
     var doc = querySnapshot.docs[0];
-    String opUid = doc[PhotoMemo.CREATED_BY_UID];
+    String opUid = doc[Constant.ARG_UID];
 
     var timestamp = DateTime.now();
     await FirebaseFirestore.instance
@@ -473,10 +552,30 @@ class FirebaseController {
       @required timestamp}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.PHOTOMEMO_COLLECTION)
+        .where(PhotoMemo.VISIBILITY, whereIn: [
+          PhotoMemo.VISIBILITY_PUBLIC,
+          PhotoMemo.VISIBILITY_SHARED_ONLY
+        ])
+        .where(PhotoMemo.SHARED_WITH, arrayContains: userEmail)
         .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
         .get();
 
-    var doc = querySnapshot.docs[0];
+    var doc;
+    if (querySnapshot.size > 0) {
+      doc = querySnapshot.docs[0];
+    } else {
+      querySnapshot = await FirebaseFirestore.instance
+          .collection(Constant.PHOTOMEMO_COLLECTION)
+          .where(PhotoMemo.VISIBILITY, whereIn: [
+            PhotoMemo.VISIBILITY_PRIVATE,
+            PhotoMemo.VISIBILITY_PUBLIC,
+            PhotoMemo.VISIBILITY_SHARED_ONLY
+          ])
+          .where(PhotoMemo.CREATED_BY_UID, isEqualTo: ownerUid)
+          .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+          .get();
+      doc = querySnapshot.docs[0];
+    }
     String owner = doc[PhotoMemo.CREATED_BY];
 
     if (owner != userEmail) {
@@ -542,14 +641,29 @@ class FirebaseController {
   }
 
   static Future<List<dynamic>> deleteComment(
-      {@required photoFilename, @required commentTimestamp}) async {
+      {@required deleterUid,
+      @required photoFilename,
+      @required commentTimestamp}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.COMMENTS_COLLECTION)
+        .where(Constant.ARG_OP_UID, isEqualTo: deleterUid)
         .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
         .where(Constant.ARG_TIMESTAMP, isEqualTo: commentTimestamp)
         .get();
 
-    var doc = querySnapshot.docs[0];
+    var doc;
+    if (querySnapshot.size > 0) {
+      doc = querySnapshot.docs[0];
+    } else {
+      querySnapshot = await FirebaseFirestore.instance
+          .collection(Constant.COMMENTS_COLLECTION)
+          .where(Constant.ARG_OWNER_UID, isEqualTo: deleterUid)
+          .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+          .where(Constant.ARG_TIMESTAMP, isEqualTo: commentTimestamp)
+          .get();
+      doc = querySnapshot.docs[0];
+    }
+
     var docId = doc.id;
 
     await FirebaseFirestore.instance
@@ -558,7 +672,9 @@ class FirebaseController {
         .delete();
 
     await deleteNotification(
-        photoFilename: photoFilename, notificationTimestamp: commentTimestamp);
+        deleterUid: deleterUid,
+        photoFilename: photoFilename,
+        notificationTimestamp: commentTimestamp);
 
     List<dynamic> updatedComments =
         await getComments(photoFilename: photoFilename);
@@ -567,15 +683,31 @@ class FirebaseController {
   }
 
   static Future<void> deleteNotification(
-      {@required photoFilename, @required notificationTimestamp}) async {
+      {@required deleterUid,
+      @required photoFilename,
+      @required notificationTimestamp}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.NOTIFICATIONS_COLLECTION)
+        .where(Constant.ARG_OWNER_UID, isEqualTo: deleterUid)
         .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
         .where(Constant.ARG_TIMESTAMP, isEqualTo: notificationTimestamp)
         .get();
 
-    if (querySnapshot.docs.length == 0) return;
-    var doc = querySnapshot.docs[0];
+    var doc;
+    if (querySnapshot.size > 0) {
+      doc = querySnapshot.docs[0];
+    } else {
+      querySnapshot = await FirebaseFirestore.instance
+          .collection(Constant.NOTIFICATIONS_COLLECTION)
+          .where(Constant.ARG_UID, isEqualTo: deleterUid)
+          .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+          .where(Constant.ARG_TIMESTAMP, isEqualTo: notificationTimestamp)
+          .get();
+
+      if (querySnapshot.docs.length == 0) return;
+      doc = querySnapshot.docs[0];
+    }
+
     var docId = doc.id;
 
     await FirebaseFirestore.instance
@@ -587,14 +719,15 @@ class FirebaseController {
   static Future<void> uploadLike(
       {@required String photoFilename,
       @required String userEmail,
-      @required String userUid}) async {
+      @required String userUid,
+      @required String opUsername}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.USER_ACCOUNT_COLLECTION)
-        .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+        .where(Constant.ARG_USERNAME, isEqualTo: opUsername)
         .get();
 
     var doc = querySnapshot.docs[0];
-    String opUid = doc[PhotoMemo.CREATED_BY_UID];
+    String opUid = doc[Constant.ARG_UID];
 
     var timestamp = DateTime.now();
     await FirebaseFirestore.instance.collection(Constant.LIKES_COLLECTION).add({
@@ -620,18 +753,42 @@ class FirebaseController {
       @required String uid,
       @required String ownerUid,
       @required timestamp}) async {
+    print('madeit1');
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.PHOTOMEMO_COLLECTION)
+        .where(PhotoMemo.VISIBILITY, whereIn: [
+          PhotoMemo.VISIBILITY_PUBLIC,
+          PhotoMemo.VISIBILITY_SHARED_ONLY
+        ])
+        .where(PhotoMemo.SHARED_WITH, arrayContains: userEmail)
         .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
         .get();
 
-    var doc = querySnapshot.docs[0];
+    var doc;
+    if (querySnapshot.size > 0) {
+      doc = querySnapshot.docs[0];
+    } else {
+      querySnapshot = await FirebaseFirestore.instance
+          .collection(Constant.PHOTOMEMO_COLLECTION)
+          .where(PhotoMemo.VISIBILITY, whereIn: [
+            PhotoMemo.VISIBILITY_PRIVATE,
+            PhotoMemo.VISIBILITY_PUBLIC,
+            PhotoMemo.VISIBILITY_SHARED_ONLY
+          ])
+          .where(PhotoMemo.CREATED_BY_UID, isEqualTo: ownerUid)
+          .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+          .get();
+      doc = querySnapshot.docs[0];
+    }
+
     String owner = doc[PhotoMemo.CREATED_BY];
 
     if (owner != userEmail) {
       await FirebaseFirestore.instance
           .collection(Constant.NOTIFICATIONS_COLLECTION)
           .add({
+        Constant.ARG_UID: uid,
+        Constant.ARG_OWNER_UID: ownerUid,
         Constant.ARG_NOTIFICATION_OWNER: owner,
         Constant.ARG_NOTIFICATION_TYPE: Constant.NOTIFICATION_TYPE_LIKE,
         Constant.ARG_EMAIL: userEmail,
@@ -662,12 +819,15 @@ class FirebaseController {
   }
 
   static Future<List<Map<String, dynamic>>> getNotifications(
-      {@required owner}) async {
+      {@required ownerUid}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.NOTIFICATIONS_COLLECTION)
-        .where(Constant.ARG_NOTIFICATION_OWNER, isEqualTo: owner)
+        .where(Constant.ARG_OWNER_UID, isEqualTo: ownerUid)
         .orderBy(Constant.ARG_TIMESTAMP, descending: true)
         .get();
+
+    print(
+        '==================================notification size:${querySnapshot.size}');
 
     var notifications = List<Map<String, dynamic>>();
     var likeNotificationPhotos = Set();
@@ -676,8 +836,8 @@ class FirebaseController {
       var doc = docs[i];
       if (doc[Constant.ARG_NOTIFICATION_TYPE] ==
           Constant.NOTIFICATION_TYPE_COMMENT) {
-        var photoMemo =
-            await getPhotoMemo(filename: doc[PhotoMemo.PHOTO_FILENAME]);
+        var photoMemo = await getPhotoMemo(
+            filename: doc[PhotoMemo.PHOTO_FILENAME], requesterUid: ownerUid);
         var username = await getUsername(email: photoMemo.createdBy);
         var message = username + " commented: " + doc[Constant.ARG_COMMENT];
         notifications.add({
@@ -688,8 +848,8 @@ class FirebaseController {
           Constant.NOTIFICATION_TYPE_LIKE) {
         var filename = doc[PhotoMemo.PHOTO_FILENAME];
         if (!likeNotificationPhotos.contains(filename)) {
-          var photoMemo =
-              await getPhotoMemo(filename: doc[PhotoMemo.PHOTO_FILENAME]);
+          var photoMemo = await getPhotoMemo(
+              filename: doc[PhotoMemo.PHOTO_FILENAME], requesterUid: ownerUid);
           var likes = await getLikes(photoFilename: filename);
           var likeCount = likes.length;
           var message = likeCount == 1
@@ -715,16 +875,34 @@ class FirebaseController {
   }
 
   static Future<List<dynamic>> deleteLike(
-      {@required photoFilename, @required email}) async {
+      {@required deleterUid, @required photoFilename, @required email}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.LIKES_COLLECTION)
+        .where(Constant.ARG_OP_UID, isEqualTo: deleterUid)
         .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
         .where(Constant.ARG_EMAIL, isEqualTo: email)
         .get();
+    print('email$email');
+    var doc;
+    if (querySnapshot.size > 0) {
+      doc = querySnapshot.docs[0];
+    } else {
+      print('-======toasty2');
 
-    var doc = querySnapshot.docs[0];
+      querySnapshot = await FirebaseFirestore.instance
+          .collection(Constant.LIKES_COLLECTION)
+          .where(Constant.ARG_OWNER_UID, isEqualTo: deleterUid)
+          .where(PhotoMemo.PHOTO_FILENAME, isEqualTo: photoFilename)
+          .where(Constant.ARG_EMAIL, isEqualTo: email)
+          .get();
+      print('size =${querySnapshot.size}');
+      doc = querySnapshot.docs[0];
+    }
+
     var timestamp = doc[Constant.ARG_TIMESTAMP];
     var docId = doc.id;
+
+    print('-======toasty');
 
     await FirebaseFirestore.instance
         .collection(Constant.LIKES_COLLECTION)
@@ -732,7 +910,9 @@ class FirebaseController {
         .delete();
 
     await deleteNotification(
-        photoFilename: photoFilename, notificationTimestamp: timestamp);
+        deleterUid: deleterUid,
+        photoFilename: photoFilename,
+        notificationTimestamp: timestamp);
 
     List<dynamic> updatedLikes = await getLikes(photoFilename: photoFilename);
 
@@ -754,13 +934,14 @@ class FirebaseController {
     }
   }
 
-  static Future<bool> unreadNotificationExists({@required owner}) async {
+  static Future<bool> unreadNotificationExists({@required owner_uid}) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection(Constant.NOTIFICATIONS_COLLECTION)
-        .where(Constant.ARG_NOTIFICATION_OWNER, isEqualTo: owner)
+        .where(Constant.ARG_OWNER_UID, isEqualTo: owner_uid)
         .where(Constant.ARG_READ, isEqualTo: 'false')
         .get();
 
+    print('===========unread size:${querySnapshot.size}');
     return querySnapshot.docs.length > 0;
   }
 }

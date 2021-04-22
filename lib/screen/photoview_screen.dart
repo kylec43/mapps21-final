@@ -283,6 +283,7 @@ class _Controller {
 
     try {
       await FirebaseController.uploadComment(
+          opUsername: state.onePhotoMemoUsername,
           photoFilename: state.onePhotoMemo.photoFilename,
           userEmail: state.user.email,
           userUid: state.user.uid,
@@ -322,6 +323,7 @@ class _Controller {
 
     try {
       List<dynamic> updatedComments = await FirebaseController.deleteComment(
+          deleterUid: state.user.uid,
           photoFilename: state.onePhotoMemo.photoFilename,
           commentTimestamp: timestamp);
       state.render(() => state.comments = updatedComments);
@@ -340,6 +342,7 @@ class _Controller {
         email: state.user.email)) {
       try {
         List<dynamic> updatedLikes = await FirebaseController.deleteLike(
+            deleterUid: state.user.uid,
             photoFilename: state.onePhotoMemo.photoFilename,
             email: state.user.email);
         state.render(() {
@@ -356,10 +359,10 @@ class _Controller {
     } else {
       try {
         await FirebaseController.uploadLike(
-          photoFilename: state.onePhotoMemo.photoFilename,
-          userEmail: state.user.email,
-          userUid: state.user.uid,
-        );
+            photoFilename: state.onePhotoMemo.photoFilename,
+            userEmail: state.user.email,
+            userUid: state.user.uid,
+            opUsername: state.onePhotoMemoUsername);
 
         List<dynamic> newLikeList = await FirebaseController.getLikes(
             photoFilename: state.onePhotoMemo.photoFilename);

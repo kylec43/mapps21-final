@@ -209,12 +209,12 @@ class _Controller {
 
     try {
       List<PhotoMemo> photoMemoList =
-          await FirebaseController.getPhotoMemoList(email: user.email);
+          await FirebaseController.getPhotoMemoList(uid: user.uid);
       MyDialog.circularProgressStop(state.context);
 
       bool unreadNotification = false;
       if (await FirebaseController.unreadNotificationExists(
-          owner: user.email)) {
+          owner_uid: user.uid)) {
         unreadNotification = true;
       }
       print(unreadNotification);

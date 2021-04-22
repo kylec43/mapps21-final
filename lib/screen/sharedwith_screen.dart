@@ -161,18 +161,18 @@ class _Controller {
         });
 
     var unreadNotification = await FirebaseController.unreadNotificationExists(
-        owner: state.user.email);
+        owner_uid: state.user.uid);
     state.render(() async => state.unreadNotification = unreadNotification);
   }
 
   void homeScreen() async {
     try {
       List<PhotoMemo> photoMemoList =
-          await FirebaseController.getPhotoMemoList(email: state.user.email);
+          await FirebaseController.getPhotoMemoList(uid: state.user.uid);
 
       bool unreadNotification = false;
       if (await FirebaseController.unreadNotificationExists(
-          owner: state.user.email)) {
+          owner_uid: state.user.uid)) {
         unreadNotification = true;
       }
 
@@ -199,7 +199,7 @@ class _Controller {
       );
 
       List<Map<String, dynamic>> notifications =
-          await FirebaseController.getNotifications(owner: state.user.email);
+          await FirebaseController.getNotifications(ownerUid: state.user.uid);
       await Navigator.pushNamed(state.context, NotificationScreen.routeName,
           arguments: {
             Constant.ARG_USER: state.user,
