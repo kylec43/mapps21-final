@@ -838,7 +838,7 @@ class FirebaseController {
           Constant.NOTIFICATION_TYPE_COMMENT) {
         var photoMemo = await getPhotoMemo(
             filename: doc[PhotoMemo.PHOTO_FILENAME], requesterUid: ownerUid);
-        var username = await getUsername(email: photoMemo.createdBy);
+        var username = await getUsername(email: doc[Constant.ARG_EMAIL]);
         var message = username + " commented: " + doc[Constant.ARG_COMMENT];
         notifications.add({
           Constant.ARG_ONE_PHOTOMEMO: photoMemo,
